@@ -333,11 +333,11 @@ const HomePage = () => {
       } else if (action === 'skip') {
         setStatusMessage('Moved to end of queue.');
         setHasStartedReading(false);
-        showToast('Skipped turn - moved to end of queue', 'info');
+        // Removed duplicate toast - status message is enough
       } else if (action === 'finish') {
         setHasStartedReading(false);
         setStatusMessage('Finished reading - moved to end of queue.');
-        showToast('Finished reading - moved to end of queue', 'success');
+        // Removed duplicate toast - status message is enough
       }
       
       await fetchQueueStatus();
