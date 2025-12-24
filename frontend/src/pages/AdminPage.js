@@ -32,6 +32,7 @@ const AdminPage = () => {
   // Action states
   const [deletingFile, setDeletingFile] = useState(null);
   const [clearingGroup, setClearingGroup] = useState(null);
+  const [deletingGroup, setDeletingGroup] = useState(null);
   const [reloading, setReloading] = useState(false);
   const [creatingGroup, setCreatingGroup] = useState(false);
   const [removingParticipant, setRemovingParticipant] = useState(null);
