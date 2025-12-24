@@ -1,7 +1,7 @@
 import React, { useEffect } from 'react';
 import { CheckCircle, XCircle, Info, X } from 'lucide-react';
 
-const Toast = ({ visible, message, type = 'info', onHide, duration = 3000 }) => {
+const Toast = ({ visible, message, type = 'info', onHide, duration = 4000 }) => {
   useEffect(() => {
     if (visible && duration > 0) {
       const timer = setTimeout(() => {
@@ -26,13 +26,14 @@ const Toast = ({ visible, message, type = 'info', onHide, duration = 3000 }) => 
   };
 
   return (
-    <div className="fixed top-4 right-4 z-50 toast-enter">
-      <div className={`flex items-center gap-3 px-4 py-3 rounded-lg border backdrop-blur-md shadow-lg ${bgColors[type]}`}>
+    <div className="fixed top-4 right-4 z-50 toast-enter" data-testid="toast-notification">
+      <div className={`flex items-center gap-3 px-4 py-3 rounded-lg border backdrop-blur-md shadow-lg max-w-md ${bgColors[type]}`}>
         {icons[type]}
-        <span className="text-white">{message}</span>
+        <span className="text-white flex-1">{message}</span>
         <button
           onClick={onHide}
-          className="p-1 hover:bg-white/10 rounded transition-all"
+          className="p-1 hover:bg-white/10 rounded transition-all flex-shrink-0"
+          data-testid="toast-close-btn"
         >
           <X size={16} className="text-white/70" />
         </button>
