@@ -350,8 +350,10 @@ const AdminPage = () => {
 
       if (response.ok) {
         showToast(`Removed "${name}"`, 'success');
-        // Force refresh queue data
-        await fetchQueue();
+        // Immediately update local state to remove this participant
+        setQueueData(prevQueue => prevQueue.filter(p => p.sessionId !== sessionId));
+        // Also fetch fresh data from server to be sure
+        setTimeout(() => fetchQueue(), 100);
       } else {
         showToast(data.detail || 'Remove failed', 'error');
       }
