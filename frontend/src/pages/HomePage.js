@@ -757,25 +757,52 @@ const HomePage = () => {
           </div>
         </div>
         
-        <div className="flex items-center gap-3">
-          {audioInitialized && (
+        {/* Audio Controls - Center of Header */}
+        {audioInitialized && (
+          <div className="flex items-center gap-2">
             <button
-              onClick={toggleMute}
-              className={`p-2 rounded-lg transition-all ${isMuted ? 'bg-red-500/20 text-red-400' : 'bg-green-500/20 text-green-400'}`}
-              data-testid="mute-btn"
+              onClick={() => { if (!isMuted) toggleMute(); }}
+              className={`px-4 py-2 rounded-lg text-sm font-medium transition-all flex items-center gap-2 ${
+                isMuted 
+                  ? 'bg-red-500 text-white ring-2 ring-red-400' 
+                  : 'bg-white/10 text-white/70 hover:bg-white/20'
+              }`}
             >
-              {isMuted ? <MicOff size={20} /> : <Mic size={20} />}
+              <MicOff size={16} />
+              Mute
             </button>
-          )}
-          
-          <button
-            onClick={leaveQueue}
-            className="btn-danger flex items-center gap-2 text-sm py-2 px-4"
-            data-testid="leave-queue-btn"
-          >
-            <LogOut size={18} />
-            Leave Queue
-          </button>
+            
+            <div className={`p-3 rounded-full ${isMuted ? 'bg-red-500/20' : 'bg-green-500/20'}`}>
+              {isMuted ? (
+                <MicOff size={24} className="text-red-400" />
+              ) : (
+                <Mic size={24} className="text-green-400" />
+              )}
+            </div>
+            
+            <button
+              onClick={() => { if (isMuted) toggleMute(); }}
+              className={`px-4 py-2 rounded-lg text-sm font-medium transition-all flex items-center gap-2 ${
+                !isMuted 
+                  ? 'bg-green-500 text-white ring-2 ring-green-400' 
+                  : 'bg-white/10 text-white/70 hover:bg-white/20'
+              }`}
+            >
+              <Mic size={16} />
+              Unmute
+            </button>
+          </div>
+        )}
+        
+        {/* Placeholder for non-audio users */}
+        {!audioInitialized && (
+          <div className="text-sm text-white/50">
+            {/* Empty space to maintain header balance */}
+          </div>
+        )}
+        
+        <div className="w-32">
+          {/* Empty space to balance header */}
         </div>
       </div>
 
