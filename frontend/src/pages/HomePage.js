@@ -940,8 +940,8 @@ const HomePage = () => {
         </div>
       </div>
 
-      {/* Main content - PDF Viewer */}
-      <div className="flex-1">
+      {/* Scrollable PDF Viewer Area */}
+      <div className="flex-1 overflow-y-auto">
         {documentStatus.loaded && documentData ? (
           <PDFViewer backendUrl={BACKEND_URL} />
         ) : (
