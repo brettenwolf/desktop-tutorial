@@ -514,6 +514,7 @@ const HomePage = () => {
     if (queueStatus?.isPosition1 && !wasPosition1) {
       // Just became Position 1
       setWasPosition1(true);
+      setStatusMessage(null); // Clear any old status messages when becoming Position 1
       
       // Start timer if we were previously Position 2 (meaning we advanced)
       // and haven't started reading yet
