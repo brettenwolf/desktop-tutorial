@@ -63,7 +63,14 @@ const AdminPage = () => {
   // Fetch queue data
   const fetchQueue = useCallback(async () => {
     try {
-      const response = await fetch(`${API}/queue/all`);
+      // Add cache-busting timestamp to ensure fresh data
+      const response = await fetch(`${API}/queue/all?t=${Date.now()}`, {
+        cache: 'no-store',
+        headers: {
+          'Cache-Control': 'no-cache',
+          'Pragma': 'no-cache'
+        }
+      });
       if (response.ok) {
         const data = await response.json();
         console.log('Fetched queue:', data);
