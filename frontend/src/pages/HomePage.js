@@ -651,10 +651,11 @@ const HomePage = () => {
           
           <button
             onClick={leaveQueue}
-            className="p-2 rounded-lg bg-red-500/20 text-red-400 hover:bg-red-500/30 transition-all"
+            className="btn-danger flex items-center gap-2 text-sm py-2 px-4"
             data-testid="leave-queue-btn"
           >
-            <LogOut size={20} />
+            <LogOut size={18} />
+            Leave Queue
           </button>
         </div>
       </div>
