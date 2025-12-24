@@ -28,7 +28,6 @@ const HomePage = () => {
   // Sub-group state
   const [availableSubGroups, setAvailableSubGroups] = useState([]);
   const [selectedSubGroup, setSelectedSubGroup] = useState(null);
-  const [newSubGroupName, setNewSubGroupName] = useState('');
   const [loadingSubGroups, setLoadingSubGroups] = useState(false);
   
   // Document state
