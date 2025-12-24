@@ -146,8 +146,8 @@ const AdminPage = () => {
     }
   };
 
-  // Upload PDF to library
-  const handleLibraryUpload = async (e, isRandom = false) => {
+  // Upload PDF to library (single file)
+  const handleLibraryUpload = async (e) => {
     const file = e.target.files[0];
     if (!file) return;
 
@@ -161,19 +161,14 @@ const AdminPage = () => {
       const formData = new FormData();
       formData.append('file', file);
 
-      const endpoint = isRandom ? `${API}/document/library/random/upload` : `${API}/document/library/upload`;
-      const response = await fetch(endpoint, {
+      const response = await fetch(`${API}/document/library/upload`, {
         method: 'POST',
         body: formData,
       });
 
       if (response.ok) {
-        showToast(`PDF uploaded successfully${isRandom ? ' to Random folder' : ''}`, 'success');
-        if (isRandom) {
-          fetchRandomLibrary();
-        } else {
-          fetchLibrary();
-        }
+        showToast('PDF uploaded successfully', 'success');
+        fetchLibrary();
       } else {
         const error = await response.json();
         showToast(error.detail || 'Upload failed', 'error');
@@ -184,6 +179,59 @@ const AdminPage = () => {
     } finally {
       setUploading(false);
       e.target.value = '';
+    }
+  };
+
+  // Upload multiple PDFs to Random folder
+  const handleRandomUpload = async (e) => {
+    const files = Array.from(e.target.files);
+    if (!files.length) return;
+
+    // Validate all files are PDFs
+    const invalidFiles = files.filter(f => !f.name.endsWith('.pdf'));
+    if (invalidFiles.length > 0) {
+      showToast(`${invalidFiles.length} file(s) skipped - only PDFs allowed`, 'error');
+    }
+
+    const validFiles = files.filter(f => f.name.endsWith('.pdf'));
+    if (!validFiles.length) {
+      e.target.value = '';
+      return;
+    }
+
+    setUploading(true);
+    let successCount = 0;
+    let failCount = 0;
+
+    for (const file of validFiles) {
+      try {
+        const formData = new FormData();
+        formData.append('file', file);
+
+        const response = await fetch(`${API}/document/library/random/upload`, {
+          method: 'POST',
+          body: formData,
+        });
+
+        if (response.ok) {
+          successCount++;
+        } else {
+          failCount++;
+        }
+      } catch (error) {
+        console.error(`Error uploading ${file.name}:`, error);
+        failCount++;
+      }
+    }
+
+    setUploading(false);
+    e.target.value = '';
+    fetchRandomLibrary();
+
+    if (failCount === 0) {
+      showToast(`${successCount} PDF(s) uploaded to Random folder`, 'success');
+    } else {
+      showToast(`${successCount} uploaded, ${failCount} failed`, 'error');
     }
   };
 
