@@ -1,6 +1,6 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { ArrowLeft, Upload, Trash2, RefreshCw, Users, FileText, FolderOpen, Plus, AlertTriangle, Loader2, UserMinus } from 'lucide-react';
+import { ArrowLeft, Upload, Trash2, RefreshCw, Users, FileText, FolderOpen, Plus, Loader2, UserMinus } from 'lucide-react';
 import Toast from '../components/Toast';
 
 const BACKEND_URL = process.env.REACT_APP_BACKEND_URL;
@@ -29,13 +29,13 @@ const AdminPage = () => {
   // Document state
   const [documentStatus, setDocumentStatus] = useState({ loaded: false, filename: null });
   
-  // Action states for loading indicators
+  // Action states
   const [deletingFile, setDeletingFile] = useState(null);
-  const [resettingAll, setResettingAll] = useState(false);
   const [clearingGroup, setClearingGroup] = useState(null);
   const [reloading, setReloading] = useState(false);
   const [creatingGroup, setCreatingGroup] = useState(false);
   const [removingParticipant, setRemovingParticipant] = useState(null);
+  const [clearingAllQueues, setClearingAllQueues] = useState(false);
   
   // Toast state
   const [toast, setToast] = useState({ visible: false, message: '', type: 'info' });
@@ -60,6 +60,88 @@ const AdminPage = () => {
     }
   };
 
+  // Fetch queue data
+  const fetchQueue = useCallback(async () => {
+    try {
+      const response = await fetch(`${API}/queue/all`);
+      if (response.ok) {
+        const data = await response.json();
+        console.log('Fetched queue:', data);
+        setQueueData(data.queue || []);
+      }
+    } catch (error) {
+      console.error('Error fetching queue:', error);
+    }
+  }, []);
+
+  // Fetch sub-groups
+  const fetchSubGroups = useCallback(async () => {
+    try {
+      const response = await fetch(`${API}/subgroups/list`);
+      if (response.ok) {
+        const data = await response.json();
+        setSubGroups(data.subgroups || []);
+      }
+    } catch (error) {
+      console.error('Error fetching sub-groups:', error);
+    }
+  }, []);
+
+  // Fetch document status
+  const fetchDocumentStatus = useCallback(async () => {
+    try {
+      const response = await fetch(`${API}/document/status`);
+      if (response.ok) {
+        const data = await response.json();
+        setDocumentStatus(data);
+      }
+    } catch (error) {
+      console.error('Error fetching document status:', error);
+    }
+  }, []);
+
+  // Fetch library files
+  const fetchLibrary = useCallback(async () => {
+    try {
+      setLoadingLibrary(true);
+      const response = await fetch(`${API}/document/library`);
+      if (response.ok) {
+        const data = await response.json();
+        setLibraryFiles(data.files || []);
+      }
+    } catch (error) {
+      console.error('Error fetching library:', error);
+    } finally {
+      setLoadingLibrary(false);
+    }
+  }, []);
+
+  // Fetch random library files
+  const fetchRandomLibrary = useCallback(async () => {
+    try {
+      const response = await fetch(`${API}/document/library/random`);
+      if (response.ok) {
+        const data = await response.json();
+        setRandomFiles(data.files || []);
+      }
+    } catch (error) {
+      console.error('Error fetching random library:', error);
+    }
+  }, []);
+
+  // Fetch all data
+  const fetchAllData = useCallback(async () => {
+    setLoadingQueue(true);
+    await Promise.all([
+      fetchLibrary(),
+      fetchRandomLibrary(),
+      fetchQueue(),
+      fetchSubGroups(),
+      fetchDocumentStatus()
+    ]);
+    setLoadingQueue(false);
+  }, [fetchLibrary, fetchRandomLibrary, fetchQueue, fetchSubGroups, fetchDocumentStatus]);
+
   // Check auth on mount
   useEffect(() => {
     const auth = localStorage.getItem('adminAuth');
@@ -73,90 +155,9 @@ const AdminPage = () => {
     if (isAuthenticated) {
       fetchAllData();
     }
-  }, [isAuthenticated]);
+  }, [isAuthenticated, fetchAllData]);
 
-  const fetchAllData = async () => {
-    await Promise.all([
-      fetchLibrary(),
-      fetchRandomLibrary(),
-      fetchQueue(),
-      fetchSubGroups(),
-      fetchDocumentStatus()
-    ]);
-  };
-
-  // Fetch library files
-  const fetchLibrary = async () => {
-    try {
-      setLoadingLibrary(true);
-      const response = await fetch(`${API}/document/library`);
-      if (response.ok) {
-        const data = await response.json();
-        setLibraryFiles(data.files || []);
-      }
-    } catch (error) {
-      console.error('Error fetching library:', error);
-    } finally {
-      setLoadingLibrary(false);
-    }
-  };
-
-  // Fetch random library files
-  const fetchRandomLibrary = async () => {
-    try {
-      const response = await fetch(`${API}/document/library/random`);
-      if (response.ok) {
-        const data = await response.json();
-        setRandomFiles(data.files || []);
-      }
-    } catch (error) {
-      console.error('Error fetching random library:', error);
-    }
-  };
-
-  // Fetch queue
-  const fetchQueue = async () => {
-    try {
-      setLoadingQueue(true);
-      const response = await fetch(`${API}/queue/all`);
-      if (response.ok) {
-        const data = await response.json();
-        setQueueData(data.queue || []);
-      }
-    } catch (error) {
-      console.error('Error fetching queue:', error);
-    } finally {
-      setLoadingQueue(false);
-    }
-  };
-
-  // Fetch sub-groups
-  const fetchSubGroups = async () => {
-    try {
-      const response = await fetch(`${API}/subgroups/list`);
-      if (response.ok) {
-        const data = await response.json();
-        setSubGroups(data.subgroups || []);
-      }
-    } catch (error) {
-      console.error('Error fetching sub-groups:', error);
-    }
-  };
-
-  // Fetch document status
-  const fetchDocumentStatus = async () => {
-    try {
-      const response = await fetch(`${API}/document/status`);
-      if (response.ok) {
-        const data = await response.json();
-        setDocumentStatus(data);
-      }
-    } catch (error) {
-      console.error('Error fetching document status:', error);
-    }
-  };
-
-  // Upload PDF to library (single file)
+  // Upload PDF to library
   const handleLibraryUpload = async (e) => {
     const file = e.target.files[0];
     if (!file) return;
@@ -197,53 +198,34 @@ const AdminPage = () => {
     const files = Array.from(e.target.files);
     if (!files.length) return;
 
-    const invalidFiles = files.filter(f => !f.name.endsWith('.pdf'));
-    if (invalidFiles.length > 0) {
-      showToast(`${invalidFiles.length} file(s) skipped - only PDFs allowed`, 'error');
-    }
-
     const validFiles = files.filter(f => f.name.endsWith('.pdf'));
     if (!validFiles.length) {
+      showToast('Only PDF files are allowed', 'error');
       e.target.value = '';
       return;
     }
 
     setUploading(true);
-    showToast(`Uploading ${validFiles.length} file(s)...`, 'info');
-    
     let successCount = 0;
-    let failCount = 0;
 
     for (const file of validFiles) {
       try {
         const formData = new FormData();
         formData.append('file', file);
-
         const response = await fetch(`${API}/document/library/random/upload`, {
           method: 'POST',
           body: formData,
         });
-
-        if (response.ok) {
-          successCount++;
-        } else {
-          failCount++;
-        }
+        if (response.ok) successCount++;
       } catch (error) {
         console.error(`Error uploading ${file.name}:`, error);
-        failCount++;
       }
     }
 
     setUploading(false);
     e.target.value = '';
     await fetchRandomLibrary();
-
-    if (failCount === 0) {
-      showToast(`${successCount} PDF(s) uploaded to Random folder`, 'success');
-    } else {
-      showToast(`${successCount} uploaded, ${failCount} failed`, 'error');
-    }
+    showToast(`${successCount} PDF(s) uploaded`, 'success');
   };
 
   // Delete PDF from library
@@ -261,7 +243,7 @@ const AdminPage = () => {
       const response = await fetch(endpoint, { method: 'DELETE' });
 
       if (response.ok) {
-        showToast(`"${filename}" deleted successfully`, 'success');
+        showToast(`Deleted "${filename}"`, 'success');
         if (isRandom) {
           await fetchRandomLibrary();
         } else {
@@ -296,7 +278,7 @@ const AdminPage = () => {
       });
 
       if (response.ok) {
-        showToast(`Group "${newGroupName}" created successfully`, 'success');
+        showToast(`Group "${newGroupName}" created`, 'success');
         setNewGroupName('');
         await fetchSubGroups();
       } else {
@@ -311,27 +293,28 @@ const AdminPage = () => {
     }
   };
 
-  // Clear queue for specific group (clears participants only, keeps the group)
+  // Clear queue for specific group
   const handleClearGroupQueue = async (groupName) => {
-    if (!window.confirm(`Clear all participants from "${groupName}"?`)) return;
+    const confirmMsg = `Clear all participants from "${groupName}"?`;
+    if (!window.confirm(confirmMsg)) return;
 
     setClearingGroup(groupName);
+    console.log(`Clearing group: ${groupName}`);
 
     try {
       const response = await fetch(`${API}/queue/clear/${encodeURIComponent(groupName)}`, {
         method: 'DELETE',
       });
 
+      const data = await response.json();
+      console.log('Clear response:', data);
+
       if (response.ok) {
-        const data = await response.json();
-        // Immediately update local state
-        setQueueData(prev => prev.filter(p => p.subGroup !== groupName));
         showToast(`Cleared ${data.count} participant(s) from "${groupName}"`, 'success');
-        // Then refresh from server to ensure sync
+        // Force refresh queue data
         await fetchQueue();
       } else {
-        const error = await response.json();
-        showToast(error.detail || 'Clear failed', 'error');
+        showToast(data.detail || 'Clear failed', 'error');
       }
     } catch (error) {
       console.error('Error clearing group queue:', error);
@@ -346,21 +329,22 @@ const AdminPage = () => {
     if (!window.confirm(`Remove "${name}" from the queue?`)) return;
 
     setRemovingParticipant(sessionId);
+    console.log(`Removing participant: ${name} (${sessionId})`);
 
     try {
       const response = await fetch(`${API}/queue/remove/${sessionId}`, {
         method: 'DELETE',
       });
 
+      const data = await response.json();
+      console.log('Remove response:', data);
+
       if (response.ok) {
-        // Immediately update local state
-        setQueueData(prev => prev.filter(p => p.sessionId !== sessionId));
-        showToast(`Removed "${name}" from queue`, 'success');
-        // Then refresh from server
+        showToast(`Removed "${name}"`, 'success');
+        // Force refresh queue data
         await fetchQueue();
       } else {
-        const error = await response.json();
-        showToast(error.detail || 'Remove failed', 'error');
+        showToast(data.detail || 'Remove failed', 'error');
       }
     } catch (error) {
       console.error('Error removing participant:', error);
@@ -370,19 +354,22 @@ const AdminPage = () => {
     }
   };
 
-  // Clear ALL queues (all groups) - keeps document loaded
+  // Clear ALL queues
   const handleClearAllQueues = async () => {
-    if (!window.confirm('Clear ALL participants from ALL groups? (Document will remain loaded)')) return;
+    if (!window.confirm('Clear ALL participants from ALL groups?')) return;
 
-    setResettingAll(true);
+    setClearingAllQueues(true);
+    console.log('Clearing all queues');
 
     try {
       const response = await fetch(`${API}/queue/clear-all`, { method: 'DELETE' });
+      const data = await response.json();
+      console.log('Clear all response:', data);
 
       if (response.ok) {
-        const data = await response.json();
-        setQueueData([]);
-        showToast(`Cleared all queues (${data.count} participants removed)`, 'success');
+        showToast(`Cleared all queues (${data.count} participants)`, 'success');
+        // Force refresh queue data
+        await fetchQueue();
       } else {
         showToast('Clear failed', 'error');
       }
@@ -390,39 +377,7 @@ const AdminPage = () => {
       console.error('Error clearing all queues:', error);
       showToast('Clear failed', 'error');
     } finally {
-      setResettingAll(false);
-    }
-  };
-
-  // Full system reset - clears document AND all queues
-  const handleClearAllAndReset = async () => {
-    if (!window.confirm('FULL RESET: This will:\n\n1. Clear the current PDF document\n2. Remove ALL participants from ALL groups\n3. Preserve the random PDF selection for today\n\nAre you sure?')) return;
-
-    setResettingAll(true);
-
-    try {
-      const response = await fetch(`${API}/document/clear`, { method: 'DELETE' });
-
-      if (response.ok) {
-        const data = await response.json();
-        setQueueData([]);
-        setDocumentStatus({ loaded: false, filename: null });
-        
-        await Promise.all([
-          fetchDocumentStatus(),
-          fetchQueue(),
-          fetchSubGroups()
-        ]);
-        
-        showToast('Full reset complete: Document cleared, all queues emptied', 'success');
-      } else {
-        showToast('Reset failed', 'error');
-      }
-    } catch (error) {
-      console.error('Error resetting:', error);
-      showToast('Reset failed - please try again', 'error');
-    } finally {
-      setResettingAll(false);
+      setClearingAllQueues(false);
     }
   };
 
@@ -434,7 +389,7 @@ const AdminPage = () => {
       const response = await fetch(`${API}/document/auto-load?force=true`);
       if (response.ok) {
         const data = await response.json();
-        showToast(`Document "${data.filename}" loaded`, 'success');
+        showToast(`Loaded "${data.filename}"`, 'success');
         await fetchDocumentStatus();
       } else {
         const error = await response.json();
@@ -462,9 +417,9 @@ const AdminPage = () => {
     return (bytes / (1024 * 1024)).toFixed(1) + ' MB';
   };
 
-  // Get total participants count
-  const getTotalParticipants = () => {
-    return queueData.length;
+  // Check if file is currently loaded
+  const isFileLoaded = (filename) => {
+    return documentStatus.loaded && documentStatus.filename === filename;
   };
 
   // PIN Entry Screen
@@ -484,18 +439,11 @@ const AdminPage = () => {
               autoFocus
               data-testid="pin-input"
             />
-            <button
-              type="submit"
-              className="btn-primary w-full"
-              data-testid="pin-submit-btn"
-            >
+            <button type="submit" className="btn-primary w-full" data-testid="pin-submit-btn">
               Enter
             </button>
           </form>
-          <button
-            onClick={() => navigate('/')}
-            className="btn-secondary w-full mt-4"
-          >
+          <button onClick={() => navigate('/')} className="btn-secondary w-full mt-4">
             Back to Home
           </button>
         </div>
@@ -509,10 +457,7 @@ const AdminPage = () => {
       {/* Header */}
       <div className="bg-white/10 backdrop-blur-md p-4 flex items-center justify-between border-b border-white/20">
         <div className="flex items-center gap-4">
-          <button
-            onClick={() => navigate('/')}
-            className="p-2 rounded-lg hover:bg-white/10 transition-all"
-          >
+          <button onClick={() => navigate('/')} className="p-2 rounded-lg hover:bg-white/10 transition-all">
             <ArrowLeft size={24} />
           </button>
           <h1 className="text-xl font-bold">Admin Portal</h1>
@@ -520,15 +465,13 @@ const AdminPage = () => {
         <div className="flex items-center gap-4">
           <button
             onClick={fetchAllData}
-            className="p-2 rounded-lg hover:bg-white/10 transition-all"
+            disabled={loadingQueue}
+            className="p-2 rounded-lg hover:bg-white/10 transition-all disabled:opacity-50"
             title="Refresh all data"
           >
-            <RefreshCw size={20} />
+            <RefreshCw size={20} className={loadingQueue ? 'animate-spin' : ''} />
           </button>
-          <button
-            onClick={handleLogout}
-            className="btn-secondary text-sm py-2 px-4"
-          >
+          <button onClick={handleLogout} className="btn-secondary text-sm py-2 px-4">
             Logout
           </button>
         </div>
@@ -543,42 +486,26 @@ const AdminPage = () => {
             <FileText size={20} />
             Current Document
           </h3>
-          {documentStatus.loaded ? (
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="font-medium">{documentStatus.filename}</p>
-                <p className="text-sm text-white/70">Currently loaded</p>
-              </div>
-              <button
-                onClick={handleForceReload}
-                disabled={reloading}
-                className="btn-secondary text-sm py-2 px-3 flex items-center gap-2 disabled:opacity-50"
-              >
-                {reloading ? (
-                  <Loader2 size={16} className="animate-spin" />
-                ) : (
-                  <RefreshCw size={16} />
-                )}
-                {reloading ? 'Reloading...' : 'Reload'}
-              </button>
+          <div className="flex items-center justify-between">
+            <div>
+              {documentStatus.loaded ? (
+                <>
+                  <p className="font-medium text-green-400">{documentStatus.filename}</p>
+                  <p className="text-sm text-white/70">Currently loaded</p>
+                </>
+              ) : (
+                <p className="text-white/70">No document loaded</p>
+              )}
             </div>
-          ) : (
-            <div className="flex items-center justify-between">
-              <p className="text-white/70">No document loaded</p>
-              <button
-                onClick={handleForceReload}
-                disabled={reloading}
-                className="btn-primary text-sm py-2 px-3 flex items-center gap-2 disabled:opacity-50"
-              >
-                {reloading ? (
-                  <Loader2 size={16} className="animate-spin" />
-                ) : (
-                  <RefreshCw size={16} />
-                )}
-                {reloading ? 'Loading...' : 'Load Document'}
-              </button>
-            </div>
-          )}
+            <button
+              onClick={handleForceReload}
+              disabled={reloading}
+              className={`${documentStatus.loaded ? 'btn-secondary' : 'btn-primary'} text-sm py-2 px-3 flex items-center gap-2 disabled:opacity-50`}
+            >
+              {reloading ? <Loader2 size={16} className="animate-spin" /> : <RefreshCw size={16} />}
+              {reloading ? 'Loading...' : documentStatus.loaded ? 'Reload' : 'Load Document'}
+            </button>
+          </div>
         </div>
 
         {/* PDF Library */}
@@ -588,25 +515,13 @@ const AdminPage = () => {
               <FolderOpen size={20} />
               PDF Library (Date-based)
             </h3>
-            <label className={`btn-primary text-sm py-2 px-4 cursor-pointer flex items-center gap-2 ${uploading ? 'opacity-50 cursor-not-allowed' : ''}`}>
-              {uploading ? (
-                <Loader2 size={16} className="animate-spin" />
-              ) : (
-                <Upload size={16} />
-              )}
-              {uploading ? 'Uploading...' : 'Upload PDF'}
-              <input
-                type="file"
-                accept=".pdf"
-                onChange={handleLibraryUpload}
-                className="hidden"
-                disabled={uploading}
-              />
+            <label className={`btn-primary text-sm py-2 px-4 cursor-pointer flex items-center gap-2 ${uploading ? 'opacity-50' : ''}`}>
+              {uploading ? <Loader2 size={16} className="animate-spin" /> : <Upload size={16} />}
+              Upload PDF
+              <input type="file" accept=".pdf" onChange={handleLibraryUpload} className="hidden" disabled={uploading} />
             </label>
           </div>
-          <p className="text-sm text-white/70 mb-4">
-            Upload PDFs with format: MMDDYYYY_name.pdf (e.g., 08152025_reading.pdf)
-          </p>
+          <p className="text-sm text-white/70 mb-4">Format: MMDDYYYY_name.pdf</p>
           {loadingLibrary ? (
             <div className="flex justify-center py-8">
               <Loader2 size={32} className="animate-spin text-blue-500" />
@@ -616,9 +531,19 @@ const AdminPage = () => {
           ) : (
             <div className="space-y-2 max-h-48 overflow-y-auto">
               {libraryFiles.map((file) => (
-                <div key={file.filename} className="flex items-center justify-between p-3 bg-white/5 rounded-lg">
+                <div 
+                  key={file.filename} 
+                  className={`flex items-center justify-between p-3 rounded-lg ${
+                    isFileLoaded(file.filename) 
+                      ? 'bg-green-500/20 border border-green-500/50' 
+                      : 'bg-white/5'
+                  }`}
+                >
                   <div>
-                    <p className="font-medium">{file.filename}</p>
+                    <p className={`font-medium ${isFileLoaded(file.filename) ? 'text-green-400' : ''}`}>
+                      {file.filename}
+                      {isFileLoaded(file.filename) && <span className="ml-2 text-xs">(LOADED)</span>}
+                    </p>
                     <p className="text-sm text-white/70">{formatSize(file.size)}</p>
                   </div>
                   <button
@@ -626,11 +551,7 @@ const AdminPage = () => {
                     disabled={deletingFile === file.filename}
                     className="p-2 text-red-400 hover:bg-red-500/20 rounded-lg transition-all disabled:opacity-50"
                   >
-                    {deletingFile === file.filename ? (
-                      <Loader2 size={18} className="animate-spin" />
-                    ) : (
-                      <Trash2 size={18} />
-                    )}
+                    {deletingFile === file.filename ? <Loader2 size={18} className="animate-spin" /> : <Trash2 size={18} />}
                   </button>
                 </div>
               ))}
@@ -645,34 +566,31 @@ const AdminPage = () => {
               <FolderOpen size={20} />
               Random Folder (Fallback)
             </h3>
-            <label className={`btn-secondary text-sm py-2 px-4 cursor-pointer flex items-center gap-2 ${uploading ? 'opacity-50 cursor-not-allowed' : ''}`}>
-              {uploading ? (
-                <Loader2 size={16} className="animate-spin" />
-              ) : (
-                <Upload size={16} />
-              )}
-              {uploading ? 'Uploading...' : 'Upload to Random'}
-              <input
-                type="file"
-                accept=".pdf"
-                multiple
-                onChange={handleRandomUpload}
-                className="hidden"
-                disabled={uploading}
-              />
+            <label className={`btn-secondary text-sm py-2 px-4 cursor-pointer flex items-center gap-2 ${uploading ? 'opacity-50' : ''}`}>
+              {uploading ? <Loader2 size={16} className="animate-spin" /> : <Upload size={16} />}
+              Upload to Random
+              <input type="file" accept=".pdf" multiple onChange={handleRandomUpload} className="hidden" disabled={uploading} />
             </label>
           </div>
-          <p className="text-sm text-white/70 mb-4">
-            PDFs here are used randomly when no date-specific PDF is found. You can select multiple files.
-          </p>
+          <p className="text-sm text-white/70 mb-4">Used when no date-specific PDF is found</p>
           {randomFiles.length === 0 ? (
             <p className="text-white/50 text-center py-4">No PDFs in Random folder</p>
           ) : (
             <div className="space-y-2 max-h-48 overflow-y-auto">
               {randomFiles.map((file) => (
-                <div key={file.filename} className="flex items-center justify-between p-3 bg-white/5 rounded-lg">
+                <div 
+                  key={file.filename} 
+                  className={`flex items-center justify-between p-3 rounded-lg ${
+                    isFileLoaded(file.filename) 
+                      ? 'bg-green-500/20 border border-green-500/50' 
+                      : 'bg-white/5'
+                  }`}
+                >
                   <div>
-                    <p className="font-medium">{file.filename}</p>
+                    <p className={`font-medium ${isFileLoaded(file.filename) ? 'text-green-400' : ''}`}>
+                      {file.filename}
+                      {isFileLoaded(file.filename) && <span className="ml-2 text-xs">(LOADED)</span>}
+                    </p>
                     <p className="text-sm text-white/70">{formatSize(file.size)}</p>
                   </div>
                   <button
@@ -680,11 +598,7 @@ const AdminPage = () => {
                     disabled={deletingFile === `random-${file.filename}`}
                     className="p-2 text-red-400 hover:bg-red-500/20 rounded-lg transition-all disabled:opacity-50"
                   >
-                    {deletingFile === `random-${file.filename}` ? (
-                      <Loader2 size={18} className="animate-spin" />
-                    ) : (
-                      <Trash2 size={18} />
-                    )}
+                    {deletingFile === `random-${file.filename}` ? <Loader2 size={18} className="animate-spin" /> : <Trash2 size={18} />}
                   </button>
                 </div>
               ))}
@@ -701,15 +615,10 @@ const AdminPage = () => {
             </h3>
             <button
               onClick={handleClearAllQueues}
-              disabled={resettingAll || getTotalParticipants() === 0}
-              className="btn-secondary text-sm py-2 px-3 flex items-center gap-2 disabled:opacity-50"
-              title="Clear all participants from all groups (keeps document)"
+              disabled={clearingAllQueues || queueData.length === 0}
+              className="btn-danger text-sm py-2 px-3 flex items-center gap-2 disabled:opacity-50"
             >
-              {resettingAll ? (
-                <Loader2 size={16} className="animate-spin" />
-              ) : (
-                <Trash2 size={16} />
-              )}
+              {clearingAllQueues ? <Loader2 size={16} className="animate-spin" /> : <Trash2 size={16} />}
               Clear All Queues
             </button>
           </div>
@@ -724,121 +633,82 @@ const AdminPage = () => {
               className="input-field flex-1"
               onKeyPress={(e) => e.key === 'Enter' && handleCreateGroup()}
               disabled={creatingGroup}
-              data-testid="new-group-name-input"
             />
             <button
               onClick={handleCreateGroup}
               disabled={creatingGroup || !newGroupName.trim()}
               className="btn-primary flex items-center gap-2 disabled:opacity-50"
-              data-testid="create-group-admin-btn"
             >
-              {creatingGroup ? (
-                <Loader2 size={18} className="animate-spin" />
-              ) : (
-                <Plus size={18} />
-              )}
-              {creatingGroup ? 'Creating...' : 'Create Group'}
+              {creatingGroup ? <Loader2 size={18} className="animate-spin" /> : <Plus size={18} />}
+              Create
             </button>
           </div>
+
+          {/* Stats */}
+          <p className="text-sm text-white/70 mb-3">
+            Groups: {subGroups.length} • Participants: {queueData.length}
+          </p>
 
           {/* Groups List */}
-          <div className="mb-4">
-            <p className="text-sm text-white/70 mb-2">
-              Groups ({subGroups.length}) • Total Participants: {getTotalParticipants()}
-            </p>
-            {loadingQueue ? (
-              <div className="flex justify-center py-8">
-                <Loader2 size={32} className="animate-spin text-blue-500" />
-              </div>
-            ) : subGroups.length === 0 ? (
-              <p className="text-white/50 text-center py-4">No groups created</p>
-            ) : (
-              <div className="space-y-3 max-h-96 overflow-y-auto">
-                {subGroups.map((group) => {
-                  const groupQueue = queueData.filter(p => p.subGroup === group.name);
-                  return (
-                    <div key={group.id} className="p-4 bg-white/5 rounded-lg">
-                      <div className="flex items-center justify-between mb-2">
-                        <div>
-                          <p className="font-semibold">{group.name}</p>
-                          <p className="text-sm text-white/70">{groupQueue.length} participant{groupQueue.length !== 1 ? 's' : ''}</p>
-                        </div>
-                        {groupQueue.length > 0 && (
-                          <button
-                            onClick={() => handleClearGroupQueue(group.name)}
-                            disabled={clearingGroup === group.name}
-                            className="btn-danger text-xs py-1 px-3 flex items-center gap-1 disabled:opacity-50"
-                            title={`Clear all participants from ${group.name}`}
-                          >
-                            {clearingGroup === group.name ? (
-                              <Loader2 size={14} className="animate-spin" />
-                            ) : (
-                              <Trash2 size={14} />
-                            )}
-                            Clear Group
-                          </button>
-                        )}
+          {loadingQueue ? (
+            <div className="flex justify-center py-8">
+              <Loader2 size={32} className="animate-spin text-blue-500" />
+            </div>
+          ) : subGroups.length === 0 ? (
+            <p className="text-white/50 text-center py-4">No groups created</p>
+          ) : (
+            <div className="space-y-3">
+              {subGroups.map((group) => {
+                const groupQueue = queueData.filter(p => p.subGroup === group.name);
+                const isClearing = clearingGroup === group.name;
+                
+                return (
+                  <div key={group.id} className="p-4 bg-white/5 rounded-lg">
+                    <div className="flex items-center justify-between mb-2">
+                      <div>
+                        <p className="font-semibold">{group.name}</p>
+                        <p className="text-sm text-white/70">{groupQueue.length} participant{groupQueue.length !== 1 ? 's' : ''}</p>
                       </div>
                       {groupQueue.length > 0 && (
-                        <div className="mt-3 space-y-1">
-                          {groupQueue.map((p, idx) => (
-                            <div key={p.sessionId} className="flex items-center justify-between text-sm bg-white/5 rounded px-2 py-1">
-                              <div className="flex items-center gap-2">
-                                <span className={`w-6 h-6 rounded-full flex items-center justify-center text-xs ${
-                                  idx === 0 ? 'bg-green-500' : idx === 1 ? 'bg-yellow-500' : 'bg-white/20'
-                                }`}>
-                                  {idx + 1}
-                                </span>
-                                <span>{p.name}</span>
-                              </div>
-                              <button
-                                onClick={() => handleRemoveParticipant(p.sessionId, p.name)}
-                                disabled={removingParticipant === p.sessionId}
-                                className="p-1 text-red-400 hover:bg-red-500/20 rounded transition-all disabled:opacity-50"
-                                title={`Remove ${p.name}`}
-                              >
-                                {removingParticipant === p.sessionId ? (
-                                  <Loader2 size={14} className="animate-spin" />
-                                ) : (
-                                  <UserMinus size={14} />
-                                )}
-                              </button>
-                            </div>
-                          ))}
-                        </div>
+                        <button
+                          onClick={() => handleClearGroupQueue(group.name)}
+                          disabled={isClearing}
+                          className="btn-danger text-xs py-1 px-3 flex items-center gap-1 disabled:opacity-50"
+                        >
+                          {isClearing ? <Loader2 size={14} className="animate-spin" /> : <Trash2 size={14} />}
+                          {isClearing ? 'Clearing...' : 'Clear Group'}
+                        </button>
                       )}
                     </div>
-                  );
-                })}
-              </div>
-            )}
-          </div>
-        </div>
-
-        {/* Full System Reset Button */}
-        <div className="card bg-red-500/10 border-red-500/30">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-3">
-              <AlertTriangle size={24} className="text-red-400" />
-              <div>
-                <p className="font-semibold text-red-400">Full System Reset</p>
-                <p className="text-sm text-white/70">Clears the PDF document AND removes all participants from all groups</p>
-              </div>
+                    {groupQueue.length > 0 && (
+                      <div className="mt-3 space-y-1">
+                        {groupQueue.map((p, idx) => (
+                          <div key={p.sessionId} className="flex items-center justify-between text-sm bg-white/5 rounded px-2 py-1">
+                            <div className="flex items-center gap-2">
+                              <span className={`w-6 h-6 rounded-full flex items-center justify-center text-xs ${
+                                idx === 0 ? 'bg-green-500' : idx === 1 ? 'bg-yellow-500' : 'bg-white/20'
+                              }`}>
+                                {idx + 1}
+                              </span>
+                              <span>{p.name}</span>
+                            </div>
+                            <button
+                              onClick={() => handleRemoveParticipant(p.sessionId, p.name)}
+                              disabled={removingParticipant === p.sessionId}
+                              className="p-1 text-red-400 hover:bg-red-500/20 rounded transition-all disabled:opacity-50"
+                              title={`Remove ${p.name}`}
+                            >
+                              {removingParticipant === p.sessionId ? <Loader2 size={14} className="animate-spin" /> : <UserMinus size={14} />}
+                            </button>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                );
+              })}
             </div>
-            <button
-              onClick={handleClearAllAndReset}
-              disabled={resettingAll}
-              className="btn-danger flex items-center gap-2 disabled:opacity-50"
-              data-testid="reset-all-btn"
-            >
-              {resettingAll ? (
-                <Loader2 size={18} className="animate-spin" />
-              ) : (
-                <Trash2 size={18} />
-              )}
-              {resettingAll ? 'Resetting...' : 'Clear All & Reset'}
-            </button>
-          </div>
+          )}
         </div>
 
         {/* Info about daily reset */}
@@ -848,8 +718,7 @@ const AdminPage = () => {
             <div>
               <p className="font-semibold text-blue-400">Automatic Daily Reset</p>
               <p className="text-sm text-white/70">
-                All queues are automatically cleared at the start of each new day (CST timezone). 
-                The random PDF selection for the day is preserved.
+                All queues are automatically cleared at the start of each new day (CST). Random PDF selection is preserved.
               </p>
             </div>
           </div>
