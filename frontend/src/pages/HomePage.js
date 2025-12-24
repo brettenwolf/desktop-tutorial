@@ -84,35 +84,6 @@ const HomePage = () => {
     }
   };
 
-  // Create sub-group
-  const createSubGroup = async () => {
-    if (!newSubGroupName.trim()) {
-      showToast('Please enter a sub-group name', 'error');
-      return;
-    }
-
-    try {
-      const response = await fetch(`${API}/subgroups/create`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ name: newSubGroupName.trim() }),
-      });
-
-      if (response.ok) {
-        const data = await response.json();
-        await fetchSubGroups();
-        setNewSubGroupName('');
-        showToast(`Group "${data.name}" created!`, 'success');
-      } else {
-        const error = await response.json();
-        showToast(error.detail || 'Failed to create sub-group', 'error');
-      }
-    } catch (error) {
-      console.error('Error creating sub-group:', error);
-      showToast('Failed to create sub-group', 'error');
-    }
-  };
-
   // Join queue
   const joinQueue = async () => {
     if (!name.trim()) {
