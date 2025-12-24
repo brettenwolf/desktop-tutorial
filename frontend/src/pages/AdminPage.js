@@ -480,7 +480,7 @@ const AdminPage = () => {
               <input
                 type="file"
                 accept=".pdf"
-                onChange={(e) => handleLibraryUpload(e, false)}
+                onChange={handleLibraryUpload}
                 className="hidden"
                 disabled={uploading}
               />
