@@ -329,7 +329,8 @@ const HomePage = () => {
           setIsMuted(false);
         }
         
-        showToast('Started reading session', 'success');
+        // Removed toast - action is visually obvious
+        setStatusMessage(null); // Clear any previous status
       } else if (action === 'skip') {
         setStatusMessage('Moved to end of queue.');
         setHasStartedReading(false);
@@ -342,6 +343,7 @@ const HomePage = () => {
       
       await fetchQueueStatus();
     } catch (error) {
+      // Keep error toasts for critical failures
       showToast(error.message || 'Failed to process action', 'error');
     }
   };
