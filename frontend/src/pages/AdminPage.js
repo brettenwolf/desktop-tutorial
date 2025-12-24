@@ -377,8 +377,10 @@ const AdminPage = () => {
 
       if (response.ok) {
         showToast(`Cleared all queues (${data.count} participants)`, 'success');
-        // Force refresh queue data
-        await fetchQueue();
+        // Immediately clear local state
+        setQueueData([]);
+        // Also fetch fresh data from server to be sure
+        setTimeout(() => fetchQueue(), 100);
       } else {
         showToast('Clear failed', 'error');
       }
