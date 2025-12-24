@@ -302,9 +302,6 @@ const AdminPage = () => {
 
   // Clear queue for specific group
   const handleClearGroupQueue = async (groupName) => {
-    const confirmMsg = `Clear all participants from "${groupName}"?`;
-    if (!window.confirm(confirmMsg)) return;
-
     setClearingGroup(groupName);
     console.log(`Clearing group: ${groupName}`);
 
