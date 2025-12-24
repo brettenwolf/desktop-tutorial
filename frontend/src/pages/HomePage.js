@@ -826,7 +826,7 @@ const HomePage = () => {
                 {isMuted ? 'Microphone muted' : 'Microphone active'}
               </p>
               {queueStatus?.isPosition1 && !hasStartedReading && (
-                <p className="text-xs text-yellow-400 mt-1">Click "Start Reading" to unmute</p>
+                <p className="text-xs text-yellow-400 mt-1">Click &quot;Start Reading&quot; to unmute</p>
               )}
             </div>
           )}
