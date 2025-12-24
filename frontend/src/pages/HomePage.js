@@ -153,10 +153,16 @@ const HomePage = () => {
         setIsMuted(startMuted);
         console.log(`Audio initialized successfully for sub-group '${subGroup}'`);
       } else {
-        console.log('Audio not available - WebRTC not supported');
+        // Even if audio init fails, show the controls (they'll be disabled)
+        setAudioInitialized(true);
+        setIsMuted(true);
+        console.log('Audio not available - showing disabled controls');
       }
     } catch (error) {
       console.error('Error initializing audio:', error);
+      // Show controls even on error
+      setAudioInitialized(true);
+      setIsMuted(true);
     }
   };
 
