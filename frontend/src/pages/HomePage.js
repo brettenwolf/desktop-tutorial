@@ -627,13 +627,13 @@ const HomePage = () => {
                   </ol>
                 </section>
                 
-                {/* Position 2 Timer */}
+                {/* Position 1 Timer */}
                 <section>
-                  <h3 className="text-lg font-semibold text-yellow-400 mb-3">Position 2 Timer</h3>
+                  <h3 className="text-lg font-semibold text-yellow-400 mb-3">Action Timer</h3>
                   <p className="text-white/80 leading-relaxed">
-                    When you're in Position 2 (next up), a 10-second timer starts. This gives you time to prepare. 
-                    If the timer runs out without action, you'll automatically be moved to the back of the queue 
-                    to keep the session flowing smoothly.
+                    When you advance to Position 1 (it&apos;s your turn), a 10-second timer starts. This gives you time 
+                    to click "Start Reading", "Skip", or "Leave Queue". If the timer runs out without action, 
+                    you&apos;ll automatically be moved to the back of the queue to keep the session flowing smoothly.
                   </p>
                 </section>
                 
