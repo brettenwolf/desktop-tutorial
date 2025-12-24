@@ -50,6 +50,9 @@ const HomePage = () => {
   // Toast state
   const [toast, setToast] = useState({ visible: false, message: '', type: 'info' });
   
+  // Info modal state
+  const [showInfoModal, setShowInfoModal] = useState(false);
+  
   // Refs for intervals
   const pollingInterval = useRef(null);
   const documentPollingInterval = useRef(null);
