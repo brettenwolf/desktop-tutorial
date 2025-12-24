@@ -533,7 +533,16 @@ const HomePage = () => {
   if (!userRole) {
     return (
       <div className="min-h-screen flex items-center justify-center p-4">
-        <div className="card max-w-md w-full text-center">
+        <div className="card max-w-md w-full text-center relative">
+          {/* Info Icon */}
+          <button
+            onClick={() => setShowInfoModal(true)}
+            className="absolute top-4 right-4 p-2 rounded-full bg-white/10 hover:bg-white/20 transition-all"
+            title="How to use ReadQueue"
+          >
+            <Info size={20} className="text-blue-400" />
+          </button>
+          
           <div className="text-6xl mb-6">📖</div>
           <h1 className="text-3xl font-bold mb-4">ReadQueue</h1>
           <p className="text-white/70 mb-8">Group Reading Queue Management</p>
@@ -556,6 +565,113 @@ const HomePage = () => {
             Admin Portal
           </button>
         </div>
+        
+        {/* Info Modal */}
+        {showInfoModal && (
+          <div className="fixed inset-0 bg-black/70 flex items-center justify-center p-4 z-50">
+            <div className="bg-slate-800 rounded-xl max-w-2xl w-full max-h-[85vh] overflow-y-auto">
+              {/* Modal Header */}
+              <div className="sticky top-0 bg-slate-800 p-4 border-b border-white/10 flex items-center justify-between">
+                <h2 className="text-xl font-bold flex items-center gap-2">
+                  <Info size={24} className="text-blue-400" />
+                  About ReadQueue
+                </h2>
+                <button
+                  onClick={() => setShowInfoModal(false)}
+                  className="p-2 rounded-lg hover:bg-white/10 transition-all"
+                >
+                  <X size={20} />
+                </button>
+              </div>
+              
+              {/* Modal Content */}
+              <div className="p-6 space-y-6">
+                {/* What is ReadQueue */}
+                <section>
+                  <h3 className="text-lg font-semibold text-blue-400 mb-3">What is ReadQueue?</h3>
+                  <p className="text-white/80 leading-relaxed">
+                    ReadQueue is a group reading queue management application designed to help organize 
+                    and coordinate group reading sessions. Participants join a queue, and when it's their 
+                    turn, they can read aloud from the shared PDF document displayed on screen.
+                  </p>
+                </section>
+                
+                {/* How to Use - Participants */}
+                <section>
+                  <h3 className="text-lg font-semibold text-green-400 mb-3">For Participants</h3>
+                  <ol className="text-white/80 space-y-2 list-decimal list-inside">
+                    <li><strong>Join a Group:</strong> Click "Join a Group" and enter your name, then select which reading group you want to join.</li>
+                    <li><strong>Wait Your Turn:</strong> Your position in the queue is displayed. When you're next (Position 2), a countdown timer will appear.</li>
+                    <li><strong>Start Reading:</strong> When you reach Position 1, click "Start Reading" to begin your turn.</li>
+                    <li><strong>Skip Turn:</strong> If you need to pass, click "Skip" to move to the back of the queue.</li>
+                    <li><strong>Finish Reading:</strong> When done, click "Finish Reading" to let the next person go.</li>
+                    <li><strong>Leave Queue:</strong> Click "Leave Queue" in the header to exit the queue entirely.</li>
+                  </ol>
+                </section>
+                
+                {/* Position 2 Timer */}
+                <section>
+                  <h3 className="text-lg font-semibold text-yellow-400 mb-3">Position 2 Timer</h3>
+                  <p className="text-white/80 leading-relaxed">
+                    When you're in Position 2 (next up), a 30-second timer starts. This gives you time to prepare. 
+                    If the timer runs out without action, you'll automatically be moved to the back of the queue 
+                    to keep the session flowing smoothly.
+                  </p>
+                </section>
+                
+                {/* Daily Reset */}
+                <section>
+                  <h3 className="text-lg font-semibold text-purple-400 mb-3">Daily Reset</h3>
+                  <p className="text-white/80 leading-relaxed">
+                    All queues are automatically cleared at the start of each new day (CST timezone). 
+                    The PDF document for the day is selected based on the date, or a random PDF is chosen 
+                    if no date-specific file exists.
+                  </p>
+                </section>
+                
+                {/* Divider */}
+                <hr className="border-white/20" />
+                
+                {/* Admin Section */}
+                <section>
+                  <h3 className="text-lg font-semibold text-red-400 mb-3">For Administrators</h3>
+                  <p className="text-white/80 mb-3">
+                    The Admin Portal provides tools to manage the reading session. Access requires a PIN.
+                  </p>
+                  <ul className="text-white/80 space-y-2 list-disc list-inside">
+                    <li><strong>PDF Library:</strong> Upload, view, and delete PDF documents. Date-based PDFs use the format MMDDYYYY_name.pdf.</li>
+                    <li><strong>Random Folder:</strong> Upload fallback PDFs used when no date-specific file exists.</li>
+                    <li><strong>Queue Management:</strong> View all groups and participants. Clear individual queues or all queues at once.</li>
+                    <li><strong>Create Groups:</strong> Add new reading groups for different sessions or topics.</li>
+                    <li><strong>Delete Groups:</strong> Remove groups that are no longer needed (except the default "General" group).</li>
+                    <li><strong>Remove Participants:</strong> Remove individual users from the queue if needed.</li>
+                  </ul>
+                </section>
+                
+                {/* Tips */}
+                <section className="bg-blue-500/10 rounded-lg p-4 border border-blue-500/30">
+                  <h3 className="text-lg font-semibold text-blue-400 mb-2">Tips</h3>
+                  <ul className="text-white/80 space-y-1 text-sm">
+                    <li>• The currently loaded PDF is highlighted in green in the Admin library.</li>
+                    <li>• Groups persist until an admin deletes them - they won't disappear automatically.</li>
+                    <li>• Use the refresh button in the Admin header to reload all data.</li>
+                  </ul>
+                </section>
+              </div>
+              
+              {/* Modal Footer */}
+              <div className="sticky bottom-0 bg-slate-800 p-4 border-t border-white/10">
+                <button
+                  onClick={() => setShowInfoModal(false)}
+                  className="btn-primary w-full"
+                >
+                  Got it!
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
+        
         <Toast {...toast} onHide={hideToast} />
       </div>
     );
