@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { ArrowLeft, Upload, Trash2, RefreshCw, Users, FileText, FolderOpen, Plus, X } from 'lucide-react';
+import { ArrowLeft, Upload, Trash2, RefreshCw, Users, FileText, FolderOpen, Plus, X, AlertTriangle } from 'lucide-react';
 import Toast from '../components/Toast';
 
 const BACKEND_URL = process.env.REACT_APP_BACKEND_URL;
@@ -13,9 +13,6 @@ const AdminPage = () => {
   // Auth state
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [pinInput, setPinInput] = useState('');
-  
-  // Tab state
-  const [activeTab, setActiveTab] = useState('library');
   
   // Library state
   const [libraryFiles, setLibraryFiles] = useState([]);
@@ -63,16 +60,20 @@ const AdminPage = () => {
     }
   }, []);
 
-  // Fetch data when authenticated
+  // Fetch all data when authenticated
   useEffect(() => {
     if (isAuthenticated) {
-      fetchLibrary();
-      fetchRandomLibrary();
-      fetchQueue();
-      fetchSubGroups();
-      fetchDocumentStatus();
+      fetchAllData();
     }
   }, [isAuthenticated]);
+
+  const fetchAllData = () => {
+    fetchLibrary();
+    fetchRandomLibrary();
+    fetchQueue();
+    fetchSubGroups();
+    fetchDocumentStatus();
+  };
 
   // Fetch library files
   const fetchLibrary = async () => {
@@ -265,44 +266,25 @@ const AdminPage = () => {
     }
   };
 
-  // Clear queue for sub-group
-  const handleClearQueue = async (subGroup) => {
-    if (!window.confirm(`Clear all participants from "${subGroup}"?`)) return;
+  // Clear document and reset everything
+  const handleClearAllAndReset = async () => {
+    if (!window.confirm('This will clear the current document and remove ALL participants from ALL queues. Are you sure?')) return;
 
     try {
-      const response = await fetch(`${API}/queue/clear/${encodeURIComponent(subGroup)}`, {
-        method: 'DELETE',
-      });
-
-      if (response.ok) {
-        showToast('Queue cleared', 'success');
-        fetchQueue();
-      } else {
-        showToast('Clear failed', 'error');
-      }
-    } catch (error) {
-      console.error('Error clearing queue:', error);
-      showToast('Clear failed', 'error');
-    }
-  };
-
-  // Clear document
-  const handleClearDocument = async () => {
-    if (!window.confirm('Clear current document and reset all queues?')) return;
-
-    try {
+      // Clear document (this also clears all queues on the backend)
       const response = await fetch(`${API}/document/clear`, { method: 'DELETE' });
 
       if (response.ok) {
-        showToast('Document cleared and queues reset', 'success');
+        showToast('Document cleared and all queues reset', 'success');
         fetchDocumentStatus();
         fetchQueue();
+        fetchSubGroups();
       } else {
-        showToast('Clear failed', 'error');
+        showToast('Reset failed', 'error');
       }
     } catch (error) {
-      console.error('Error clearing document:', error);
-      showToast('Clear failed', 'error');
+      console.error('Error resetting:', error);
+      showToast('Reset failed', 'error');
     }
   };
 
@@ -335,6 +317,11 @@ const AdminPage = () => {
     if (bytes < 1024) return bytes + ' B';
     if (bytes < 1024 * 1024) return (bytes / 1024).toFixed(1) + ' KB';
     return (bytes / (1024 * 1024)).toFixed(1) + ' MB';
+  };
+
+  // Get total participants count
+  const getTotalParticipants = () => {
+    return queueData.length;
   };
 
   // PIN Entry Screen
@@ -387,266 +374,243 @@ const AdminPage = () => {
           </button>
           <h1 className="text-xl font-bold">Admin Portal</h1>
         </div>
-        <button
-          onClick={handleLogout}
-          className="btn-secondary text-sm py-2 px-4"
-        >
-          Logout
-        </button>
-      </div>
-
-      {/* Tabs */}
-      <div className="flex border-b border-white/20">
-        <button
-          onClick={() => setActiveTab('library')}
-          className={`flex-1 py-3 px-4 text-center transition-all ${activeTab === 'library' ? 'bg-white/10 border-b-2 border-blue-500' : 'hover:bg-white/5'}`}
-          data-testid="library-tab"
-        >
-          <FileText size={20} className="inline mr-2" />
-          PDF Library
-        </button>
-        <button
-          onClick={() => setActiveTab('queue')}
-          className={`flex-1 py-3 px-4 text-center transition-all ${activeTab === 'queue' ? 'bg-white/10 border-b-2 border-blue-500' : 'hover:bg-white/5'}`}
-          data-testid="queue-tab"
-        >
-          <Users size={20} className="inline mr-2" />
-          Queue Management
-        </button>
+        <div className="flex items-center gap-4">
+          <button
+            onClick={fetchAllData}
+            className="p-2 rounded-lg hover:bg-white/10 transition-all"
+            title="Refresh all data"
+          >
+            <RefreshCw size={20} />
+          </button>
+          <button
+            onClick={handleLogout}
+            className="btn-secondary text-sm py-2 px-4"
+          >
+            Logout
+          </button>
+        </div>
       </div>
 
       {/* Content */}
-      <div className="p-4 max-w-6xl mx-auto">
-        {activeTab === 'library' && (
-          <div className="space-y-6">
-            {/* Document Status */}
-            <div className="card">
-              <h3 className="font-semibold mb-4 flex items-center gap-2">
-                <FileText size={20} />
-                Current Document
-              </h3>
-              {documentStatus.loaded ? (
-                <div className="flex items-center justify-between">
-                  <div>
-                    <p className="font-medium">{documentStatus.filename}</p>
-                    <p className="text-sm text-white/70">Currently loaded</p>
-                  </div>
-                  <div className="flex gap-2">
-                    <button
-                      onClick={handleForceReload}
-                      className="btn-secondary text-sm py-2 px-3 flex items-center gap-1"
-                    >
-                      <RefreshCw size={16} />
-                      Reload
-                    </button>
-                    <button
-                      onClick={handleClearDocument}
-                      className="btn-danger text-sm py-2 px-3 flex items-center gap-1"
-                    >
-                      <Trash2 size={16} />
-                      Clear
-                    </button>
-                  </div>
-                </div>
-              ) : (
-                <p className="text-white/70">No document loaded</p>
-              )}
-            </div>
-
-            {/* Main Library */}
-            <div className="card">
-              <div className="flex items-center justify-between mb-4">
-                <h3 className="font-semibold flex items-center gap-2">
-                  <FolderOpen size={20} />
-                  PDF Library (Date-based)
-                </h3>
-                <label className="btn-primary text-sm py-2 px-4 cursor-pointer flex items-center gap-2">
-                  <Upload size={16} />
-                  Upload PDF
-                  <input
-                    type="file"
-                    accept=".pdf"
-                    onChange={(e) => handleLibraryUpload(e, false)}
-                    className="hidden"
-                    disabled={uploading}
-                  />
-                </label>
+      <div className="p-4 max-w-6xl mx-auto space-y-6">
+        
+        {/* Current Document Status */}
+        <div className="card">
+          <h3 className="font-semibold mb-4 flex items-center gap-2">
+            <FileText size={20} />
+            Current Document
+          </h3>
+          {documentStatus.loaded ? (
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="font-medium">{documentStatus.filename}</p>
+                <p className="text-sm text-white/70">Currently loaded</p>
               </div>
-              <p className="text-sm text-white/70 mb-4">
-                Upload PDFs with format: MMDDYYYY_name.pdf (e.g., 08152025_reading.pdf)
-              </p>
-              {loadingLibrary ? (
-                <div className="flex justify-center py-8">
-                  <div className="animate-spin rounded-full h-8 w-8 border-t-2 border-b-2 border-blue-500"></div>
-                </div>
-              ) : libraryFiles.length === 0 ? (
-                <p className="text-white/50 text-center py-8">No PDFs in library</p>
-              ) : (
-                <div className="space-y-2 max-h-64 overflow-y-auto">
-                  {libraryFiles.map((file) => (
-                    <div key={file.filename} className="flex items-center justify-between p-3 bg-white/5 rounded-lg">
-                      <div>
-                        <p className="font-medium">{file.filename}</p>
-                        <p className="text-sm text-white/70">{formatSize(file.size)}</p>
-                      </div>
-                      <button
-                        onClick={() => handleDeleteFile(file.filename, false)}
-                        className="p-2 text-red-400 hover:bg-red-500/20 rounded-lg transition-all"
-                      >
-                        <Trash2 size={18} />
-                      </button>
-                    </div>
-                  ))}
-                </div>
-              )}
+              <button
+                onClick={handleForceReload}
+                className="btn-secondary text-sm py-2 px-3 flex items-center gap-1"
+              >
+                <RefreshCw size={16} />
+                Reload
+              </button>
             </div>
+          ) : (
+            <p className="text-white/70">No document loaded</p>
+          )}
+        </div>
 
-            {/* Random Library */}
-            <div className="card">
-              <div className="flex items-center justify-between mb-4">
-                <h3 className="font-semibold flex items-center gap-2">
-                  <FolderOpen size={20} />
-                  Random Folder (Fallback)
-                </h3>
-                <label className="btn-secondary text-sm py-2 px-4 cursor-pointer flex items-center gap-2">
-                  <Upload size={16} />
-                  Upload to Random
-                  <input
-                    type="file"
-                    accept=".pdf"
-                    onChange={(e) => handleLibraryUpload(e, true)}
-                    className="hidden"
-                    disabled={uploading}
-                  />
-                </label>
-              </div>
-              <p className="text-sm text-white/70 mb-4">
-                PDFs here are used randomly when no date-specific PDF is found
-              </p>
-              {randomFiles.length === 0 ? (
-                <p className="text-white/50 text-center py-8">No PDFs in Random folder</p>
-              ) : (
-                <div className="space-y-2 max-h-64 overflow-y-auto">
-                  {randomFiles.map((file) => (
-                    <div key={file.filename} className="flex items-center justify-between p-3 bg-white/5 rounded-lg">
-                      <div>
-                        <p className="font-medium">{file.filename}</p>
-                        <p className="text-sm text-white/70">{formatSize(file.size)}</p>
-                      </div>
-                      <button
-                        onClick={() => handleDeleteFile(file.filename, true)}
-                        className="p-2 text-red-400 hover:bg-red-500/20 rounded-lg transition-all"
-                      >
-                        <Trash2 size={18} />
-                      </button>
-                    </div>
-                  ))}
-                </div>
-              )}
-            </div>
+        {/* PDF Library */}
+        <div className="card">
+          <div className="flex items-center justify-between mb-4">
+            <h3 className="font-semibold flex items-center gap-2">
+              <FolderOpen size={20} />
+              PDF Library (Date-based)
+            </h3>
+            <label className="btn-primary text-sm py-2 px-4 cursor-pointer flex items-center gap-2">
+              <Upload size={16} />
+              Upload PDF
+              <input
+                type="file"
+                accept=".pdf"
+                onChange={(e) => handleLibraryUpload(e, false)}
+                className="hidden"
+                disabled={uploading}
+              />
+            </label>
           </div>
-        )}
-
-        {activeTab === 'queue' && (
-          <div className="space-y-6">
-            {/* Create Group */}
-            <div className="card">
-              <h3 className="font-semibold mb-4 flex items-center gap-2">
-                <Plus size={20} />
-                Create New Group
-              </h3>
-              <div className="flex gap-2">
-                <input
-                  type="text"
-                  value={newGroupName}
-                  onChange={(e) => setNewGroupName(e.target.value)}
-                  placeholder="Group name"
-                  className="input-field flex-1"
-                  onKeyPress={(e) => e.key === 'Enter' && handleCreateGroup()}
-                  data-testid="new-group-name-input"
-                />
-                <button
-                  onClick={handleCreateGroup}
-                  className="btn-primary"
-                  data-testid="create-group-admin-btn"
-                >
-                  Create
-                </button>
-              </div>
+          <p className="text-sm text-white/70 mb-4">
+            Upload PDFs with format: MMDDYYYY_name.pdf (e.g., 08152025_reading.pdf)
+          </p>
+          {loadingLibrary ? (
+            <div className="flex justify-center py-8">
+              <div className="animate-spin rounded-full h-8 w-8 border-t-2 border-b-2 border-blue-500"></div>
             </div>
-
-            {/* Sub-groups */}
-            <div className="card">
-              <h3 className="font-semibold mb-4 flex items-center gap-2">
-                <Users size={20} />
-                Groups ({subGroups.length})
-              </h3>
-              {subGroups.length === 0 ? (
-                <p className="text-white/50 text-center py-4">No groups created</p>
-              ) : (
-                <div className="space-y-3">
-                  {subGroups.map((group) => {
-                    const groupQueue = queueData.filter(p => p.subGroup === group.name);
-                    return (
-                      <div key={group.id} className="p-4 bg-white/5 rounded-lg">
-                        <div className="flex items-center justify-between mb-2">
-                          <div>
-                            <p className="font-semibold">{group.name}</p>
-                            <p className="text-sm text-white/70">{groupQueue.length} participants</p>
-                          </div>
-                          <div className="flex gap-2">
-                            <button
-                              onClick={() => handleClearQueue(group.name)}
-                              className="btn-secondary text-sm py-1 px-3"
-                              disabled={groupQueue.length === 0}
-                            >
-                              Clear Queue
-                            </button>
-                            {group.name !== 'General' && (
-                              <button
-                                onClick={() => handleDeleteGroup(group.name)}
-                                className="p-2 text-red-400 hover:bg-red-500/20 rounded-lg transition-all"
-                              >
-                                <X size={18} />
-                              </button>
-                            )}
-                          </div>
-                        </div>
-                        {groupQueue.length > 0 && (
-                          <div className="mt-3 space-y-1">
-                            {groupQueue.map((p, idx) => (
-                              <div key={p.sessionId} className="flex items-center gap-2 text-sm">
-                                <span className={`w-6 h-6 rounded-full flex items-center justify-center text-xs ${
-                                  idx === 0 ? 'bg-green-500' : idx === 1 ? 'bg-yellow-500' : 'bg-white/20'
-                                }`}>
-                                  {idx + 1}
-                                </span>
-                                <span>{p.name}</span>
-                              </div>
-                            ))}
-                          </div>
-                        )}
-                      </div>
-                    );
-                  })}
+          ) : libraryFiles.length === 0 ? (
+            <p className="text-white/50 text-center py-4">No PDFs in library</p>
+          ) : (
+            <div className="space-y-2 max-h-48 overflow-y-auto">
+              {libraryFiles.map((file) => (
+                <div key={file.filename} className="flex items-center justify-between p-3 bg-white/5 rounded-lg">
+                  <div>
+                    <p className="font-medium">{file.filename}</p>
+                    <p className="text-sm text-white/70">{formatSize(file.size)}</p>
+                  </div>
+                  <button
+                    onClick={() => handleDeleteFile(file.filename, false)}
+                    className="p-2 text-red-400 hover:bg-red-500/20 rounded-lg transition-all"
+                  >
+                    <Trash2 size={18} />
+                  </button>
                 </div>
-              )}
+              ))}
             </div>
+          )}
+        </div>
 
-            {/* Refresh Button */}
+        {/* Random Library */}
+        <div className="card">
+          <div className="flex items-center justify-between mb-4">
+            <h3 className="font-semibold flex items-center gap-2">
+              <FolderOpen size={20} />
+              Random Folder (Fallback)
+            </h3>
+            <label className="btn-secondary text-sm py-2 px-4 cursor-pointer flex items-center gap-2">
+              <Upload size={16} />
+              Upload to Random
+              <input
+                type="file"
+                accept=".pdf"
+                onChange={(e) => handleLibraryUpload(e, true)}
+                className="hidden"
+                disabled={uploading}
+              />
+            </label>
+          </div>
+          <p className="text-sm text-white/70 mb-4">
+            PDFs here are used randomly when no date-specific PDF is found
+          </p>
+          {randomFiles.length === 0 ? (
+            <p className="text-white/50 text-center py-4">No PDFs in Random folder</p>
+          ) : (
+            <div className="space-y-2 max-h-48 overflow-y-auto">
+              {randomFiles.map((file) => (
+                <div key={file.filename} className="flex items-center justify-between p-3 bg-white/5 rounded-lg">
+                  <div>
+                    <p className="font-medium">{file.filename}</p>
+                    <p className="text-sm text-white/70">{formatSize(file.size)}</p>
+                  </div>
+                  <button
+                    onClick={() => handleDeleteFile(file.filename, true)}
+                    className="p-2 text-red-400 hover:bg-red-500/20 rounded-lg transition-all"
+                  >
+                    <Trash2 size={18} />
+                  </button>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+
+        {/* Queue Management */}
+        <div className="card">
+          <h3 className="font-semibold mb-4 flex items-center gap-2">
+            <Users size={20} />
+            Queue Management
+          </h3>
+          
+          {/* Create Group */}
+          <div className="flex gap-2 mb-4">
+            <input
+              type="text"
+              value={newGroupName}
+              onChange={(e) => setNewGroupName(e.target.value)}
+              placeholder="New group name"
+              className="input-field flex-1"
+              onKeyPress={(e) => e.key === 'Enter' && handleCreateGroup()}
+              data-testid="new-group-name-input"
+            />
             <button
-              onClick={() => {
-                fetchQueue();
-                fetchSubGroups();
-              }}
-              className="btn-secondary w-full flex items-center justify-center gap-2"
-              disabled={loadingQueue}
+              onClick={handleCreateGroup}
+              className="btn-primary flex items-center gap-2"
+              data-testid="create-group-admin-btn"
             >
-              <RefreshCw size={18} className={loadingQueue ? 'animate-spin' : ''} />
-              Refresh Queue Data
+              <Plus size={18} />
+              Create Group
             </button>
           </div>
-        )}
+
+          {/* Groups List */}
+          <div className="mb-4">
+            <p className="text-sm text-white/70 mb-2">
+              Groups ({subGroups.length}) • Total Participants: {getTotalParticipants()}
+            </p>
+            {subGroups.length === 0 ? (
+              <p className="text-white/50 text-center py-4">No groups created</p>
+            ) : (
+              <div className="space-y-3 max-h-64 overflow-y-auto">
+                {subGroups.map((group) => {
+                  const groupQueue = queueData.filter(p => p.subGroup === group.name);
+                  return (
+                    <div key={group.id} className="p-4 bg-white/5 rounded-lg">
+                      <div className="flex items-center justify-between mb-2">
+                        <div>
+                          <p className="font-semibold">{group.name}</p>
+                          <p className="text-sm text-white/70">{groupQueue.length} participants</p>
+                        </div>
+                        <div className="flex gap-2">
+                          {group.name !== 'General' && (
+                            <button
+                              onClick={() => handleDeleteGroup(group.name)}
+                              className="p-2 text-red-400 hover:bg-red-500/20 rounded-lg transition-all"
+                              title="Delete group"
+                            >
+                              <X size={18} />
+                            </button>
+                          )}
+                        </div>
+                      </div>
+                      {groupQueue.length > 0 && (
+                        <div className="mt-3 space-y-1">
+                          {groupQueue.map((p, idx) => (
+                            <div key={p.sessionId} className="flex items-center gap-2 text-sm">
+                              <span className={`w-6 h-6 rounded-full flex items-center justify-center text-xs ${
+                                idx === 0 ? 'bg-green-500' : idx === 1 ? 'bg-yellow-500' : 'bg-white/20'
+                              }`}>
+                                {idx + 1}
+                              </span>
+                              <span>{p.name}</span>
+                            </div>
+                          ))}
+                        </div>
+                      )}
+                    </div>
+                  );
+                })}
+              </div>
+            )}
+          </div>
+        </div>
+
+        {/* Reset Everything Button */}
+        <div className="card bg-red-500/10 border-red-500/30">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-3">
+              <AlertTriangle size={24} className="text-red-400" />
+              <div>
+                <p className="font-semibold text-red-400">Reset Session</p>
+                <p className="text-sm text-white/70">Clear document and remove all participants from all queues</p>
+              </div>
+            </div>
+            <button
+              onClick={handleClearAllAndReset}
+              className="btn-danger flex items-center gap-2"
+              data-testid="reset-all-btn"
+            >
+              <Trash2 size={18} />
+              Clear All & Reset
+            </button>
+          </div>
+        </div>
       </div>
 
       <Toast {...toast} onHide={hideToast} />
