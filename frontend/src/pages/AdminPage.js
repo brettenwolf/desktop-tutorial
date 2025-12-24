@@ -318,8 +318,10 @@ const AdminPage = () => {
 
       if (response.ok) {
         showToast(`Cleared ${data.count} participant(s) from "${groupName}"`, 'success');
-        // Force refresh queue data
-        await fetchQueue();
+        // Immediately update local state to remove participants from this group
+        setQueueData(prevQueue => prevQueue.filter(p => p.subGroup !== groupName));
+        // Also fetch fresh data from server to be sure
+        setTimeout(() => fetchQueue(), 100);
       } else {
         showToast(data.detail || 'Clear failed', 'error');
       }
