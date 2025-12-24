@@ -582,6 +582,19 @@ const HomePage = () => {
           ) : (
             <>
               <div className="mb-4">
+                <label className="block text-sm text-white/70 mb-2">Your Name</label>
+                <input
+                  type="text"
+                  value={name}
+                  onChange={(e) => setName(e.target.value)}
+                  placeholder="Enter your name"
+                  className="input-field"
+                  onKeyPress={(e) => e.key === 'Enter' && joinQueue()}
+                  data-testid="name-input"
+                />
+              </div>
+              
+              <div className="mb-6">
                 <label className="block text-sm text-white/70 mb-2">Select Group</label>
                 <select
                   value={selectedSubGroup || ''}
@@ -596,41 +609,6 @@ const HomePage = () => {
                     </option>
                   ))}
                 </select>
-              </div>
-              
-              <div className="mb-4 border-t border-white/20 pt-4">
-                <label className="block text-sm text-white/70 mb-2">Or Create New Group</label>
-                <div className="flex gap-2">
-                  <input
-                    type="text"
-                    value={newSubGroupName}
-                    onChange={(e) => setNewSubGroupName(e.target.value)}
-                    placeholder="New group name"
-                    className="input-field flex-1"
-                    onKeyPress={(e) => e.key === 'Enter' && createSubGroup()}
-                    data-testid="new-group-input"
-                  />
-                  <button
-                    onClick={createSubGroup}
-                    className="btn-secondary"
-                    data-testid="create-group-btn"
-                  >
-                    Create
-                  </button>
-                </div>
-              </div>
-              
-              <div className="mb-6">
-                <label className="block text-sm text-white/70 mb-2">Your Name</label>
-                <input
-                  type="text"
-                  value={name}
-                  onChange={(e) => setName(e.target.value)}
-                  placeholder="Enter your name"
-                  className="input-field"
-                  onKeyPress={(e) => e.key === 'Enter' && joinQueue()}
-                  data-testid="name-input"
-                />
               </div>
               
               <button
