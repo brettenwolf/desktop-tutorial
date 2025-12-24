@@ -219,7 +219,7 @@ const HomePage = () => {
     localStorage.removeItem('sessionId');
     localStorage.removeItem('userName');
     
-    showToast('Session ended by Admin', 'info');
+    // Session ended - user will see they're back at welcome screen
   };
 
   // Clear Position 2 timer
