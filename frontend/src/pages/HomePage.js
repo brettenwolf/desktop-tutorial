@@ -529,7 +529,8 @@ const HomePage = () => {
       // Reset wasPosition2 now that we've used it
       setWasPosition2(false);
       
-      if (Notification.permission === 'granted') {
+      // Browser notification (not supported on iOS)
+      if (typeof Notification !== 'undefined' && Notification.permission === 'granted') {
         new Notification("It's Your Turn!", { body: 'You are now at position 1. Please select an action.' });
       }
     } else if (!queueStatus?.isPosition1 && wasPosition1) {
