@@ -301,6 +301,45 @@ const AdminPage = () => {
     }
   };
 
+  // Delete a group entirely
+  const handleDeleteGroup = async (groupName) => {
+    if (groupName.toLowerCase() === 'general') {
+      showToast('Cannot delete the General group', 'error');
+      return;
+    }
+
+    setDeletingGroup(groupName);
+    console.log(`Deleting group: ${groupName}`);
+
+    try {
+      const response = await fetch(`${API}/subgroups/delete/${encodeURIComponent(groupName)}`, {
+        method: 'DELETE',
+      });
+
+      const data = await response.json();
+      console.log('Delete group response:', data);
+
+      if (response.ok) {
+        showToast(`Deleted group "${groupName}"`, 'success');
+        // Remove from local state
+        setSubGroups(prevGroups => prevGroups.filter(g => g.name !== groupName));
+        setQueueData(prevQueue => prevQueue.filter(p => p.subGroup !== groupName));
+        // Also fetch fresh data
+        setTimeout(() => {
+          fetchSubGroups();
+          fetchQueue();
+        }, 100);
+      } else {
+        showToast(data.detail || 'Delete failed', 'error');
+      }
+    } catch (error) {
+      console.error('Error deleting group:', error);
+      showToast('Delete failed', 'error');
+    } finally {
+      setDeletingGroup(null);
+    }
+  };
+
   // Clear queue for specific group
   const handleClearGroupQueue = async (groupName) => {
     setClearingGroup(groupName);
