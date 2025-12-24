@@ -570,9 +570,9 @@ const HomePage = () => {
     autoLoadDocument();
   }, [queueStatus?.isPosition1, hasJoined, documentStatus.loaded]);
 
-  // Request notification permission
+  // Request notification permission (not supported on iOS)
   useEffect(() => {
-    if ('Notification' in window && Notification.permission === 'default') {
+    if (typeof Notification !== 'undefined' && 'Notification' in window && Notification.permission === 'default') {
       Notification.requestPermission();
     }
   }, []);
