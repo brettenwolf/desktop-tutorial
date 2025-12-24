@@ -168,11 +168,15 @@ const HomePage = () => {
 
   // Toggle mute
   const toggleMute = () => {
-    if (!audioManager.current) return;
-    
-    const newMutedState = audioManager.current.toggleMute();
-    setIsMuted(newMutedState);
-    console.log(`User manually ${newMutedState ? 'muted' : 'unmuted'}`);
+    if (audioManager.current) {
+      const newMutedState = audioManager.current.toggleMute();
+      setIsMuted(newMutedState);
+      console.log(`User manually ${newMutedState ? 'muted' : 'unmuted'}`);
+    } else {
+      // Toggle visual state even if audio not available
+      setIsMuted(prev => !prev);
+      console.log('Audio not available - toggling visual state only');
+    }
   };
 
   // Fetch queue status
