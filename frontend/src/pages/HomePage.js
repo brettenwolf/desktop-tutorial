@@ -1,6 +1,6 @@
-import React, { useState, useEffect, useRef, useCallback } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Users, BookOpen, Mic, MicOff, SkipForward, Play, Check, LogOut, ChevronDown, ChevronUp, Volume2, VolumeX } from 'lucide-react';
+import { Users, BookOpen, Mic, MicOff, SkipForward, Play, Check, LogOut, Volume2, VolumeX } from 'lucide-react';
 import Toast from '../components/Toast';
 import PDFViewer from '../components/PDFViewer';
 import AudioManager from '../utils/AudioManager';
@@ -20,10 +20,9 @@ const HomePage = () => {
   
   // Queue state
   const [queueStatus, setQueueStatus] = useState(null);
-  const [autoSkipTimer, setAutoSkipTimer] = useState(10);
   const [wasPosition2, setWasPosition2] = useState(false);
-  const [isExpanded, setIsExpanded] = useState(false);
   const [hasStartedReading, setHasStartedReading] = useState(false);
+  const [statusMessage, setStatusMessage] = useState(null);
   
   // Sub-group state
   const [availableSubGroups, setAvailableSubGroups] = useState([]);
@@ -46,8 +45,6 @@ const HomePage = () => {
   
   // Refs for intervals
   const pollingInterval = useRef(null);
-  const autoSkipTimeout = useRef(null);
-  const timerInterval = useRef(null);
   const documentPollingInterval = useRef(null);
 
   // Toast helper
@@ -183,8 +180,6 @@ const HomePage = () => {
   // Handle session end
   const handleSessionEnd = async () => {
     if (pollingInterval.current) clearInterval(pollingInterval.current);
-    if (autoSkipTimeout.current) clearTimeout(autoSkipTimeout.current);
-    if (timerInterval.current) clearInterval(timerInterval.current);
     if (documentPollingInterval.current) clearInterval(documentPollingInterval.current);
     
     if (audioManager.current) {
@@ -201,9 +196,9 @@ const HomePage = () => {
     setUserRole(null);
     setDocumentData(null);
     setDocumentStatus({ loaded: false, filename: null });
-    setIsExpanded(false);
     setHasStartedReading(false);
     setAutoLoadAttempted(false);
+    setStatusMessage(null);
     
     localStorage.removeItem('sessionId');
     localStorage.removeItem('userName');
@@ -220,60 +215,11 @@ const HomePage = () => {
     }, 750);
   };
 
-  // Start auto-skip timer
-  const startAutoSkipTimer = useCallback(() => {
-    if (autoSkipTimeout.current) clearTimeout(autoSkipTimeout.current);
-    if (timerInterval.current) clearInterval(timerInterval.current);
-    
-    setAutoSkipTimer(10);
-    
-    let secondsLeft = 10;
-    timerInterval.current = setInterval(() => {
-      secondsLeft--;
-      setAutoSkipTimer(secondsLeft);
-      
-      if (secondsLeft <= 0) {
-        if (timerInterval.current) clearInterval(timerInterval.current);
-      }
-    }, 1000);
-    
-    autoSkipTimeout.current = setTimeout(async () => {
-      if (hasStartedReading || !sessionId) return;
-
-      try {
-        const response = await fetch(`${API}/queue/action`, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ sessionId, action: 'skip' }),
-        });
-
-        if (response.ok) {
-          setIsExpanded(false);
-          showToast('Moved to back of queue due to inactivity', 'info');
-          fetchQueueStatus();
-        }
-      } catch (error) {
-        console.error('Auto-skip error:', error);
-      }
-    }, 10000);
-  }, [sessionId, hasStartedReading]);
-
   // Handle queue action
   const handleAction = async (action) => {
     if (!sessionId) return;
 
-    setIsExpanded(false);
-
-    if (autoSkipTimeout.current) {
-      clearTimeout(autoSkipTimeout.current);
-      autoSkipTimeout.current = null;
-    }
-    if (timerInterval.current) {
-      clearInterval(timerInterval.current);
-      timerInterval.current = null;
-    }
-    setAutoSkipTimer(10);
-
+    // Mute audio when skipping or finishing
     if ((action === 'skip' || action === 'finish') && audioManager.current) {
       const currentMuteState = audioManager.current.getMuteState();
       if (!currentMuteState) {
@@ -295,7 +241,9 @@ const HomePage = () => {
 
       if (action === 'start') {
         setHasStartedReading(true);
+        setStatusMessage(null);
         
+        // Unmute when starting to read
         if (audioManager.current) {
           const currentMuteState = audioManager.current.getMuteState();
           if (currentMuteState) {
@@ -306,9 +254,13 @@ const HomePage = () => {
         
         showToast('Started reading session', 'success');
       } else if (action === 'skip') {
-        showToast('Skipped turn - moved to back of queue', 'info');
+        setStatusMessage('Moved to end of queue.');
+        setHasStartedReading(false);
+        showToast('Skipped turn - moved to end of queue', 'info');
       } else if (action === 'finish') {
-        showToast('Finished reading - moved to back of queue', 'success');
+        setHasStartedReading(false);
+        setStatusMessage('Finished reading - moved to end of queue.');
+        showToast('Finished reading - moved to end of queue', 'success');
       }
       
       await fetchQueueStatus();
@@ -323,8 +275,6 @@ const HomePage = () => {
 
     try {
       if (pollingInterval.current) clearInterval(pollingInterval.current);
-      if (autoSkipTimeout.current) clearTimeout(autoSkipTimeout.current);
-      if (timerInterval.current) clearInterval(timerInterval.current);
       if (documentPollingInterval.current) clearInterval(documentPollingInterval.current);
 
       await fetch(`${API}/queue/leave/${sessionId}`, { method: 'DELETE' });
@@ -345,6 +295,7 @@ const HomePage = () => {
       setDocumentStatus({ loaded: false, filename: null });
       setSelectedSubGroup(null);
       setAutoLoadAttempted(false);
+      setStatusMessage(null);
       
       localStorage.removeItem('sessionId');
       localStorage.removeItem('userName');
@@ -402,8 +353,6 @@ const HomePage = () => {
       const response = await fetch(`${API}/document/auto-load?loaderSessionId=${sessionId}`);
       
       if (response.ok) {
-        const result = await response.json();
-        
         const docResponse = await fetch(`${API}/document/current`);
         if (docResponse.ok) {
           const doc = await docResponse.json();
@@ -421,6 +370,17 @@ const HomePage = () => {
     }
   };
 
+  // Clear status message when position changes
+  useEffect(() => {
+    if (queueStatus && !queueStatus.isPosition1 && statusMessage) {
+      // Clear message after 3 seconds when not at position 1
+      const timer = setTimeout(() => {
+        setStatusMessage(null);
+      }, 3000);
+      return () => clearTimeout(timer);
+    }
+  }, [queueStatus?.position, statusMessage]);
+
   // Effects
   useEffect(() => {
     if (userRole) {
@@ -429,8 +389,6 @@ const HomePage = () => {
     
     return () => {
       if (pollingInterval.current) clearInterval(pollingInterval.current);
-      if (autoSkipTimeout.current) clearTimeout(autoSkipTimeout.current);
-      if (timerInterval.current) clearInterval(timerInterval.current);
       if (documentPollingInterval.current) clearInterval(documentPollingInterval.current);
     };
   }, [userRole]);
@@ -443,10 +401,6 @@ const HomePage = () => {
 
   useEffect(() => {
     if (queueStatus?.isPosition1) {
-      if (!hasStartedReading) {
-        setIsExpanded(true);
-      }
-      
       if (wasPosition2) {
         if (Notification.permission === 'granted') {
           new Notification("It's Your Turn!", { body: 'You are now at position 1. Please select an action.' });
@@ -454,24 +408,11 @@ const HomePage = () => {
         setWasPosition2(false);
       }
       
-      if (!hasStartedReading && !autoSkipTimeout.current) {
-        startAutoSkipTimer();
-      } else if (hasStartedReading) {
-        if (autoSkipTimeout.current) {
-          clearTimeout(autoSkipTimeout.current);
-          autoSkipTimeout.current = null;
-        }
-        if (timerInterval.current) {
-          clearInterval(timerInterval.current);
-          timerInterval.current = null;
-        }
-      }
+      // Auto-mute handling is done in handleAction
     } else {
-      if (autoSkipTimeout.current) clearTimeout(autoSkipTimeout.current);
-      if (timerInterval.current) clearInterval(timerInterval.current);
-      setAutoSkipTimer(10);
       setHasStartedReading(false);
       
+      // Mute when not position 1
       if (audioManager.current && queueStatus) {
         const currentMuteState = audioManager.current.getMuteState();
         if (!currentMuteState) {
@@ -484,7 +425,7 @@ const HomePage = () => {
     if (queueStatus?.isPosition2) {
       setWasPosition2(true);
     }
-  }, [queueStatus?.isPosition1, queueStatus?.isPosition2, wasPosition2, hasStartedReading, startAutoSkipTimer]);
+  }, [queueStatus?.isPosition1, queueStatus?.isPosition2, wasPosition2]);
 
   useEffect(() => {
     if (userRole === 'participant' && !documentStatus.loaded) {
@@ -639,79 +580,51 @@ const HomePage = () => {
         </div>
       </div>
 
-      {/* Main content */}
-      <div className="flex-1 flex flex-col lg:flex-row">
-        {/* PDF Viewer */}
-        <div className="flex-1 relative">
-          {documentStatus.loaded && documentData ? (
-            <PDFViewer backendUrl={BACKEND_URL} />
-          ) : (
-            <div className="flex items-center justify-center h-full min-h-[400px]">
-              <div className="text-center">
-                {uploadingDocument ? (
-                  <>
-                    <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-blue-500 mx-auto mb-4"></div>
-                    <p className="text-white/70">Loading document...</p>
-                  </>
-                ) : (
-                  <>
-                    <div className="text-6xl mb-4">📄</div>
-                    <p className="text-white/70">Waiting for document...</p>
-                    <p className="text-sm text-white/50 mt-2">The document will load automatically</p>
-                  </>
-                )}
-              </div>
+      {/* Queue Status Panel - Always at Top */}
+      <div className="bg-white/5 border-b border-white/20 p-4">
+        <div className="max-w-4xl mx-auto">
+          {/* Status Message */}
+          {statusMessage && (
+            <div className="bg-yellow-500/20 border border-yellow-500/30 rounded-lg p-3 mb-4 text-center">
+              <p className="text-yellow-400 font-medium">{statusMessage}</p>
             </div>
           )}
-        </div>
-
-        {/* Queue Panel */}
-        <div className="w-full lg:w-80 bg-white/5 border-t lg:border-t-0 lg:border-l border-white/20 p-4">
-          {/* Position Card */}
-          <div 
-            className={`card mb-4 cursor-pointer transition-all ${queueStatus?.isPosition1 ? 'ring-2 ring-green-500 pulse-animation' : ''}`}
-            onClick={() => queueStatus?.isPosition1 && setIsExpanded(!isExpanded)}
-            data-testid="position-card"
-          >
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm text-white/70">Your Position</p>
-                <p className="text-4xl font-bold">{queueStatus?.position || '-'}</p>
+          
+          <div className="flex flex-wrap items-center justify-between gap-4">
+            {/* Position Info */}
+            <div className="flex items-center gap-6">
+              <div className={`text-center px-4 py-2 rounded-lg ${queueStatus?.isPosition1 ? 'bg-green-500/20 ring-2 ring-green-500' : 'bg-white/10'}`}>
+                <p className="text-xs text-white/70 uppercase">Your Position</p>
+                <p className={`text-3xl font-bold ${queueStatus?.isPosition1 ? 'text-green-400' : ''}`}>
+                  {queueStatus?.position || '-'}
+                </p>
               </div>
-              <div className="text-right">
-                <p className="text-sm text-white/70">In Queue</p>
-                <p className="text-2xl font-semibold">{queueStatus?.totalInQueue || 0}</p>
-              </div>
-              {queueStatus?.isPosition1 && (
-                <div className="ml-2">
-                  {isExpanded ? <ChevronUp size={24} /> : <ChevronDown size={24} />}
-                </div>
-              )}
-            </div>
-            
-            {queueStatus?.isPosition1 && (
-              <div className="mt-4 pt-4 border-t border-white/20">
-                <p className="text-green-400 font-semibold text-center">🎉 It&apos;s Your Turn!</p>
-              </div>
-            )}
-          </div>
-
-          {/* Action Panel (Expanded) */}
-          {isExpanded && queueStatus?.isPosition1 && (
-            <div className="card mb-4" data-testid="action-panel">
-              {!hasStartedReading && (
-                <div className="text-center mb-4">
-                  <p className="text-sm text-white/70">Auto-skip in</p>
-                  <p className="text-3xl font-bold text-yellow-400">{autoSkipTimer}s</p>
-                </div>
-              )}
               
-              <div className="space-y-3">
+              <div className="text-center px-4 py-2 rounded-lg bg-white/10">
+                <p className="text-xs text-white/70 uppercase">Total in Queue</p>
+                <p className="text-3xl font-bold">{queueStatus?.totalInQueue || 0}</p>
+              </div>
+              
+              <div className="hidden sm:block">
+                <p className="text-xs text-white/70">Current Reader</p>
+                <p className={`font-medium ${queueStatus?.isPosition1 ? 'text-green-400' : ''}`}>
+                  {queueStatus?.position1Name || 'None'}
+                </p>
+                <p className="text-xs text-white/70 mt-1">Next Up</p>
+                <p className={`font-medium ${queueStatus?.isPosition2 ? 'text-yellow-400' : ''}`}>
+                  {queueStatus?.position2Name || 'None'}
+                </p>
+              </div>
+            </div>
+
+            {/* Action Buttons - Only show when Position 1 */}
+            {queueStatus?.isPosition1 && (
+              <div className="flex items-center gap-3">
                 {!hasStartedReading ? (
                   <>
                     <button
                       onClick={() => handleAction('start')}
-                      className="btn-success w-full flex items-center justify-center gap-2"
+                      className="btn-success flex items-center gap-2"
                       data-testid="start-reading-btn"
                     >
                       <Play size={20} />
@@ -719,17 +632,17 @@ const HomePage = () => {
                     </button>
                     <button
                       onClick={() => handleAction('skip')}
-                      className="btn-secondary w-full flex items-center justify-center gap-2"
+                      className="btn-secondary flex items-center gap-2"
                       data-testid="skip-btn"
                     >
                       <SkipForward size={20} />
-                      Skip Turn
+                      Skip
                     </button>
                   </>
                 ) : (
                   <button
                     onClick={() => handleAction('finish')}
-                    className="btn-primary w-full flex items-center justify-center gap-2"
+                    className="btn-primary flex items-center gap-2"
                     data-testid="finish-btn"
                   >
                     <Check size={20} />
@@ -737,48 +650,57 @@ const HomePage = () => {
                   </button>
                 )}
               </div>
-            </div>
-          )}
+            )}
 
-          {/* Queue Info */}
-          <div className="card">
-            <h3 className="font-semibold mb-3">Queue Status</h3>
-            <div className="space-y-2 text-sm">
-              <div className="flex justify-between">
-                <span className="text-white/70">Current Reader:</span>
-                <span className={queueStatus?.isPosition1 ? 'text-green-400 font-semibold' : ''}>
-                  {queueStatus?.position1Name || 'None'}
-                </span>
+            {/* Position 1 indicator when not your turn */}
+            {!queueStatus?.isPosition1 && (
+              <div className="text-right">
+                <p className="text-sm text-white/70">Your name: <span className="text-white font-medium">{name}</span></p>
+                {queueStatus?.isPosition2 && (
+                  <p className="text-yellow-400 text-sm font-medium mt-1">You&apos;re next!</p>
+                )}
               </div>
-              <div className="flex justify-between">
-                <span className="text-white/70">Next Up:</span>
-                <span className={queueStatus?.isPosition2 ? 'text-yellow-400 font-semibold' : ''}>
-                  {queueStatus?.position2Name || 'None'}
-                </span>
-              </div>
-              <div className="flex justify-between">
-                <span className="text-white/70">Your Name:</span>
-                <span>{name}</span>
-              </div>
-            </div>
+            )}
           </div>
 
           {/* Audio Status */}
           {audioInitialized && (
-            <div className="card mt-4">
-              <h3 className="font-semibold mb-2 flex items-center gap-2">
-                {isMuted ? <VolumeX size={16} className="text-red-400" /> : <Volume2 size={16} className="text-green-400" />}
-                Audio Status
-              </h3>
-              <p className="text-sm text-white/70">
-                {isMuted ? 'Microphone muted' : 'Microphone active'}
-              </p>
-              {queueStatus?.isPosition1 && !hasStartedReading && (
-                <p className="text-xs text-yellow-400 mt-1">Click &quot;Start Reading&quot; to unmute</p>
+            <div className="mt-3 flex items-center gap-2 text-sm">
+              {isMuted ? (
+                <VolumeX size={14} className="text-red-400" />
+              ) : (
+                <Volume2 size={14} className="text-green-400" />
               )}
+              <span className="text-white/70">
+                {isMuted ? 'Microphone muted' : 'Microphone active'}
+              </span>
             </div>
           )}
         </div>
+      </div>
+
+      {/* Main content - PDF Viewer */}
+      <div className="flex-1">
+        {documentStatus.loaded && documentData ? (
+          <PDFViewer backendUrl={BACKEND_URL} />
+        ) : (
+          <div className="flex items-center justify-center h-full min-h-[400px]">
+            <div className="text-center">
+              {uploadingDocument ? (
+                <>
+                  <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-blue-500 mx-auto mb-4"></div>
+                  <p className="text-white/70">Loading document...</p>
+                </>
+              ) : (
+                <>
+                  <div className="text-6xl mb-4">📄</div>
+                  <p className="text-white/70">Waiting for document...</p>
+                  <p className="text-sm text-white/50 mt-2">The document will load automatically</p>
+                </>
+              )}
+            </div>
+          </div>
+        )}
       </div>
       
       <Toast {...toast} onHide={hideToast} />
