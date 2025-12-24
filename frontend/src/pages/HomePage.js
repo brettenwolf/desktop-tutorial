@@ -806,8 +806,8 @@ const HomePage = () => {
         </div>
       </div>
 
-      {/* Queue Status Panel - Always at Top */}
-      <div className="bg-white/5 border-b border-white/20 p-4">
+      {/* Fixed Queue Status Panel */}
+      <div className="flex-shrink-0 bg-white/5 border-b border-white/20 p-4 z-10">
         <div className="max-w-4xl mx-auto">
           {/* Status Message */}
           {statusMessage && (
