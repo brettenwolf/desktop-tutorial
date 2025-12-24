@@ -227,6 +227,9 @@ async def list_subgroups():
 # Queue Management Endpoints
 @api_router.post("/queue/join", response_model=JoinQueueResponse)
 async def join_queue(request: JoinQueueRequest):
+    # Check for daily reset on first queue join
+    await check_and_perform_daily_reset()
+    
     subgroup = await db.subgroups.find_one({"name": request.subGroup})
     if not subgroup:
         subgroup_id = str(uuid.uuid4())
