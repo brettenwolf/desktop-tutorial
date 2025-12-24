@@ -746,9 +746,9 @@ const HomePage = () => {
 
   // Render main queue view
   return (
-    <div className="min-h-screen flex flex-col">
-      {/* Header */}
-      <div className="bg-white/10 backdrop-blur-md p-4 flex items-center justify-between border-b border-white/20">
+    <div className="h-screen flex flex-col overflow-hidden">
+      {/* Fixed Header */}
+      <div className="flex-shrink-0 bg-white/10 backdrop-blur-md p-4 flex items-center justify-between border-b border-white/20 z-10">
         <div className="flex items-center gap-4">
           <div className="text-2xl">📖</div>
           <div>
