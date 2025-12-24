@@ -61,8 +61,38 @@ random_pdf_cache = {}
 # Cache version for forcing fresh image loads
 cache_version = 0
 
+# Daily reset tracking
+last_reset_date = None
+
 # WebRTC Signaling - Store signaling messages in memory
 webrtc_signals = {}  # sessionId -> list of signals
+
+
+async def check_and_perform_daily_reset():
+    """Check if we need to perform a daily reset based on CST date"""
+    global last_reset_date, current_document, cache_version
+    
+    cst_time = datetime.utcnow() + timedelta(hours=TIMEZONE_OFFSET)
+    today = cst_time.strftime("%Y-%m-%d")
+    
+    if last_reset_date != today:
+        logger.info(f"Performing daily reset. Last reset: {last_reset_date}, Today: {today}")
+        
+        # Clear document
+        current_document["data"] = None
+        current_document["filename"] = None
+        current_document["contentType"] = None
+        current_document["loaderSessionId"] = None
+        
+        cache_version += 1
+        
+        # Clear all queues
+        await db.queue.delete_many({})
+        
+        last_reset_date = today
+        logger.info(f"Daily reset complete. Random PDF cache preserved: {list(random_pdf_cache.keys())}")
+        return True
+    return False
 
 
 # Define Models
