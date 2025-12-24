@@ -448,16 +448,24 @@ const HomePage = () => {
     }
   };
 
-  // Clear status message when position changes
+  // Clear status message when position changes significantly
   useEffect(() => {
+    // Clear status message immediately when becoming Position 1 or Position 2
+    if (queueStatus?.isPosition1 || queueStatus?.isPosition2) {
+      if (statusMessage && !statusMessage.includes('inactivity')) {
+        // Clear non-inactivity messages when at position 1 or 2
+        setStatusMessage(null);
+      }
+    }
+    
+    // Clear any status message after 5 seconds when in lower positions
     if (queueStatus && !queueStatus.isPosition1 && !queueStatus.isPosition2 && statusMessage) {
-      // Clear message after 3 seconds when not at position 1 or 2
       const timer = setTimeout(() => {
         setStatusMessage(null);
-      }, 3000);
+      }, 5000);
       return () => clearTimeout(timer);
     }
-  }, [queueStatus?.position, statusMessage]);
+  }, [queueStatus?.position, queueStatus?.isPosition1, queueStatus?.isPosition2, statusMessage]);
 
   // Effects
   useEffect(() => {
