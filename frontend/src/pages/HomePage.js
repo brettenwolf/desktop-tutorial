@@ -439,12 +439,11 @@ const HomePage = () => {
           setDocumentData(doc.data);
           setDocumentStatus({ loaded: true, filename: doc.filename });
         }
-      } else if (response.status === 404) {
-        showToast('No PDF found for today. Please upload a PDF via Admin portal.', 'error');
       }
+      // Removed toast for no PDF - the "Waiting for document" UI is clear enough
     } catch (error) {
       console.error('Auto-load error:', error);
-      showToast('Auto-load failed. Please use Admin portal.', 'info');
+      // Removed toast - UI already shows "Waiting for document"
     } finally {
       setUploadingDocument(false);
     }
