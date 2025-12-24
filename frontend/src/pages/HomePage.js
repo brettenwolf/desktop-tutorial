@@ -293,6 +293,7 @@ const HomePage = () => {
 
     // Clear Position 2 timer when taking action
     clearPosition2Timer();
+    setJustBecamePosition1(false); // Clear the "just became" state when action is taken
 
     // Mute audio when skipping or finishing
     if ((action === 'skip' || action === 'finish') && audioManager.current) {
@@ -317,6 +318,7 @@ const HomePage = () => {
       if (action === 'start') {
         setHasStartedReading(true);
         setStatusMessage(null);
+        setJustBecamePosition1(false); // Clear timer display when started reading
         
         // Unmute when starting to read
         if (audioManager.current) {
