@@ -864,6 +864,16 @@ const HomePage = () => {
             {/* Action Buttons - Position 1 */}
             {queueStatus?.isPosition1 && (
               <div className="flex items-center gap-3">
+                {/* Timer for newly advanced Position 1 */}
+                {justBecamePosition1 && isPosition2TimerActive && !hasStartedReading && (
+                  <div className={`text-center px-4 py-2 rounded-lg ${position2Timer <= 5 ? 'bg-red-500/20' : 'bg-green-500/20'}`}>
+                    <p className="text-xs text-white/70 uppercase">Act Within</p>
+                    <p className={`text-2xl font-bold ${position2Timer <= 5 ? 'text-red-400' : 'text-green-400'}`}>
+                      {position2Timer}s
+                    </p>
+                  </div>
+                )}
+                
                 {!hasStartedReading ? (
                   <>
                     <button
@@ -914,17 +924,9 @@ const HomePage = () => {
               </div>
             )}
 
-            {/* Position 2 Timer and Info */}
+            {/* Position 2 Info (no timer - timer only shows when advancing to Position 1) */}
             {queueStatus?.isPosition2 && (
               <div className="flex items-center gap-4">
-                {isPosition2TimerActive && (
-                  <div className={`text-center px-4 py-2 rounded-lg ${position2Timer <= 10 ? 'bg-red-500/20' : 'bg-yellow-500/20'}`}>
-                    <p className="text-xs text-white/70 uppercase">Get Ready In</p>
-                    <p className={`text-2xl font-bold ${position2Timer <= 10 ? 'text-red-400' : 'text-yellow-400'}`}>
-                      {position2Timer}s
-                    </p>
-                  </div>
-                )}
                 <div className="text-right">
                   <p className="text-yellow-400 font-semibold">You&apos;re next!</p>
                   <p className="text-sm text-white/70">Be ready to start reading</p>
