@@ -336,6 +336,27 @@ async def leave_queue(sessionId: str):
     
     return {"message": "You have left the queue"}
 
+@api_router.delete("/queue/remove/{sessionId}")
+async def remove_participant(sessionId: str):
+    """Admin endpoint to remove any participant from the queue"""
+    participant = await db.queue.find_one({"sessionId": sessionId})
+    
+    if not participant:
+        raise HTTPException(status_code=404, detail="Participant not found in queue")
+    
+    result = await db.queue.delete_one({"sessionId": sessionId})
+    
+    if result.deleted_count == 0:
+        raise HTTPException(status_code=404, detail="Failed to remove participant")
+    
+    logger.info(f"Admin removed participant '{participant.get('name')}' from queue")
+    return {
+        "success": True,
+        "message": f"Removed '{participant.get('name')}' from queue",
+        "name": participant.get('name'),
+        "subGroup": participant.get('subGroup')
+    }
+
 @api_router.get("/queue/all")
 async def get_all_queue():
     participants = await db.queue.find().sort("joinedAt", 1).to_list(100)
@@ -350,7 +371,23 @@ async def get_all_queue():
 async def clear_subgroup_queue(subGroup: str):
     result = await db.queue.delete_many({"subGroup": subGroup})
     logger.info(f"Admin cleared {result.deleted_count} participants from sub-group '{subGroup}'")
-    return {"message": f"Cleared {result.deleted_count} participants from {subGroup}", "count": result.deleted_count}
+    return {
+        "success": True,
+        "message": f"Cleared {result.deleted_count} participants from {subGroup}", 
+        "count": result.deleted_count,
+        "subGroup": subGroup
+    }
+
+@api_router.delete("/queue/clear-all")
+async def clear_all_queues():
+    """Clear all participants from all queues"""
+    result = await db.queue.delete_many({})
+    logger.info(f"Admin cleared all queues: {result.deleted_count} participants removed")
+    return {
+        "success": True,
+        "message": f"Cleared all queues ({result.deleted_count} participants removed)",
+        "count": result.deleted_count
+    }
 
 
 # Document Management Endpoints
