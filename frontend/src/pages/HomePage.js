@@ -476,30 +476,40 @@ const HomePage = () => {
     }
   }, [sessionId, hasJoined]);
 
-  // Handle Position 2 timer
+  // Handle Position 2 timer - NOW triggers when becoming Position 1
   useEffect(() => {
+    // Track Position 2 status for later use
     if (queueStatus?.isPosition2 && !wasPosition2) {
-      // Just became Position 2, start the timer
-      startPosition2Timer();
       setWasPosition2(true);
     } else if (!queueStatus?.isPosition2 && wasPosition2) {
-      // No longer Position 2, clear timer
-      clearPosition2Timer();
       setWasPosition2(false);
     }
-  }, [queueStatus?.isPosition2, wasPosition2, startPosition2Timer]);
+  }, [queueStatus?.isPosition2, wasPosition2]);
 
+  // Start timer when user advances FROM Position 2 TO Position 1
   useEffect(() => {
-    if (queueStatus?.isPosition1) {
-      // Clear Position 2 timer if we become Position 1
-      clearPosition2Timer();
-      setWasPosition2(false);
+    if (queueStatus?.isPosition1 && !wasPosition1) {
+      // Just became Position 1
+      setWasPosition1(true);
+      
+      // Only start timer if we were previously Position 2 (meaning we advanced)
+      // and haven't started reading yet
+      if (wasPosition2 && !hasStartedReading) {
+        setJustBecamePosition1(true);
+        startPosition2Timer(); // Reusing the same timer logic
+      }
       
       if (Notification.permission === 'granted') {
         new Notification("It's Your Turn!", { body: 'You are now at position 1. Please select an action.' });
       }
-    } else {
+    } else if (!queueStatus?.isPosition1 && wasPosition1) {
+      // No longer Position 1
+      setWasPosition1(false);
+      setJustBecamePosition1(false);
+      clearPosition2Timer();
       setHasStartedReading(false);
+    }
+  }, [queueStatus?.isPosition1, wasPosition1, wasPosition2, hasStartedReading, startPosition2Timer]);
       
       // Mute when not position 1
       if (audioManager.current && queueStatus) {
