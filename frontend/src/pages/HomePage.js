@@ -9,7 +9,7 @@ const BACKEND_URL = process.env.REACT_APP_BACKEND_URL;
 const API = `${BACKEND_URL}/api`;
 
 // Timer duration for Position 2 (in seconds)
-const POSITION_2_TIMER_DURATION = 30;
+const POSITION_2_TIMER_DURATION = 10;
 
 const HomePage = () => {
   const navigate = useNavigate();
@@ -769,7 +769,7 @@ const HomePage = () => {
               }`}
             >
               <MicOff size={16} />
-              Mute
+              Muted
             </button>
             
             <div className={`p-3 rounded-full ${isMuted ? 'bg-red-500/20' : 'bg-green-500/20'}`}>
@@ -789,7 +789,7 @@ const HomePage = () => {
               }`}
             >
               <Mic size={16} />
-              Unmute
+              Unmuted
             </button>
           </div>
         )}
