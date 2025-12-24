@@ -478,38 +478,41 @@ const HomePage = () => {
     }
   }, [sessionId, hasJoined]);
 
-  // Handle Position 2 timer - NOW triggers when becoming Position 1
+  // Handle Position 2 tracking
   useEffect(() => {
-    // Track Position 2 status for later use
-    if (queueStatus?.isPosition2 && !wasPosition2) {
+    if (queueStatus?.isPosition2) {
       setWasPosition2(true);
-    } else if (!queueStatus?.isPosition2 && wasPosition2) {
-      setWasPosition2(false);
     }
-  }, [queueStatus?.isPosition2, wasPosition2]);
+    // Note: We don't reset wasPosition2 to false here - it stays true
+    // so we know they were Position 2 at some point before becoming Position 1
+  }, [queueStatus?.isPosition2]);
 
-  // Start timer when user advances FROM Position 2 TO Position 1
+  // Start timer when user advances TO Position 1
   useEffect(() => {
     if (queueStatus?.isPosition1 && !wasPosition1) {
       // Just became Position 1
       setWasPosition1(true);
       
-      // Only start timer if we were previously Position 2 (meaning we advanced)
+      // Start timer if we were previously Position 2 (meaning we advanced)
       // and haven't started reading yet
       if (wasPosition2 && !hasStartedReading) {
         setJustBecamePosition1(true);
-        startPosition2Timer(); // Reusing the same timer logic
+        startPosition2Timer();
       }
+      
+      // Reset wasPosition2 now that we've used it
+      setWasPosition2(false);
       
       if (Notification.permission === 'granted') {
         new Notification("It's Your Turn!", { body: 'You are now at position 1. Please select an action.' });
       }
     } else if (!queueStatus?.isPosition1 && wasPosition1) {
-      // No longer Position 1
+      // No longer Position 1 (moved to back of queue or left)
       setWasPosition1(false);
       setJustBecamePosition1(false);
       clearPosition2Timer();
       setHasStartedReading(false);
+      // Don't reset wasPosition2 here - they might come back to Position 2
     }
   }, [queueStatus?.isPosition1, wasPosition1, wasPosition2, hasStartedReading, startPosition2Timer]);
 
