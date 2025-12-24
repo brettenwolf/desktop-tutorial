@@ -156,7 +156,14 @@ async def health_check():
 async def api_health_check():
     try:
         await db.command('ping')
-        return {"status": "healthy", "service": "backend", "database": "connected"}
+        # Check for daily reset on health check (first activity trigger)
+        daily_reset_performed = await check_and_perform_daily_reset()
+        return {
+            "status": "healthy", 
+            "service": "backend", 
+            "database": "connected",
+            "dailyResetPerformed": daily_reset_performed
+        }
     except Exception as e:
         logger.error(f"Health check failed: {e}")
         raise HTTPException(status_code=503, detail=f"Database connection failed: {str(e)}")
