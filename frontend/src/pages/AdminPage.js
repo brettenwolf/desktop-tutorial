@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { ArrowLeft, Upload, Trash2, RefreshCw, Users, FileText, FolderOpen, Plus, X, AlertTriangle } from 'lucide-react';
+import { ArrowLeft, Upload, Trash2, RefreshCw, Users, FileText, FolderOpen, Plus, X, AlertTriangle, Loader2 } from 'lucide-react';
 import Toast from '../components/Toast';
 
 const BACKEND_URL = process.env.REACT_APP_BACKEND_URL;
@@ -28,6 +28,13 @@ const AdminPage = () => {
   
   // Document state
   const [documentStatus, setDocumentStatus] = useState({ loaded: false, filename: null });
+  
+  // Action states for loading indicators
+  const [deletingFile, setDeletingFile] = useState(null);
+  const [resetting, setResetting] = useState(false);
+  const [reloading, setReloading] = useState(false);
+  const [creatingGroup, setCreatingGroup] = useState(false);
+  const [deletingGroup, setDeletingGroup] = useState(null);
   
   // Toast state
   const [toast, setToast] = useState({ visible: false, message: '', type: 'info' });
@@ -67,12 +74,14 @@ const AdminPage = () => {
     }
   }, [isAuthenticated]);
 
-  const fetchAllData = () => {
-    fetchLibrary();
-    fetchRandomLibrary();
-    fetchQueue();
-    fetchSubGroups();
-    fetchDocumentStatus();
+  const fetchAllData = async () => {
+    await Promise.all([
+      fetchLibrary(),
+      fetchRandomLibrary(),
+      fetchQueue(),
+      fetchSubGroups(),
+      fetchDocumentStatus()
+    ]);
   };
 
   // Fetch library files
@@ -158,6 +167,7 @@ const AdminPage = () => {
 
     try {
       setUploading(true);
+      showToast('Uploading...', 'info');
       const formData = new FormData();
       formData.append('file', file);
 
@@ -168,7 +178,7 @@ const AdminPage = () => {
 
       if (response.ok) {
         showToast('PDF uploaded successfully', 'success');
-        fetchLibrary();
+        await fetchLibrary();
       } else {
         const error = await response.json();
         showToast(error.detail || 'Upload failed', 'error');
@@ -200,6 +210,8 @@ const AdminPage = () => {
     }
 
     setUploading(true);
+    showToast(`Uploading ${validFiles.length} file(s)...`, 'info');
+    
     let successCount = 0;
     let failCount = 0;
 
@@ -226,7 +238,7 @@ const AdminPage = () => {
 
     setUploading(false);
     e.target.value = '';
-    fetchRandomLibrary();
+    await fetchRandomLibrary();
 
     if (failCount === 0) {
       showToast(`${successCount} PDF(s) uploaded to Random folder`, 'success');
@@ -237,7 +249,11 @@ const AdminPage = () => {
 
   // Delete PDF from library
   const handleDeleteFile = async (filename, isRandom = false) => {
-    if (!window.confirm(`Delete ${filename}?`)) return;
+    if (!window.confirm(`Delete "${filename}"?`)) return;
+
+    const fileKey = `${isRandom ? 'random-' : ''}${filename}`;
+    setDeletingFile(fileKey);
+    showToast(`Deleting ${filename}...`, 'info');
 
     try {
       const endpoint = isRandom 
@@ -247,11 +263,11 @@ const AdminPage = () => {
       const response = await fetch(endpoint, { method: 'DELETE' });
 
       if (response.ok) {
-        showToast('File deleted', 'success');
+        showToast(`"${filename}" deleted successfully`, 'success');
         if (isRandom) {
-          fetchRandomLibrary();
+          await fetchRandomLibrary();
         } else {
-          fetchLibrary();
+          await fetchLibrary();
         }
       } else {
         const error = await response.json();
@@ -260,6 +276,8 @@ const AdminPage = () => {
     } catch (error) {
       console.error('Error deleting:', error);
       showToast('Delete failed', 'error');
+    } finally {
+      setDeletingFile(null);
     }
   };
 
@@ -270,6 +288,9 @@ const AdminPage = () => {
       return;
     }
 
+    setCreatingGroup(true);
+    showToast('Creating group...', 'info');
+
     try {
       const response = await fetch(`${API}/subgroups/create`, {
         method: 'POST',
@@ -278,9 +299,9 @@ const AdminPage = () => {
       });
 
       if (response.ok) {
-        showToast('Group created', 'success');
+        showToast(`Group "${newGroupName}" created successfully`, 'success');
         setNewGroupName('');
-        fetchSubGroups();
+        await fetchSubGroups();
       } else {
         const error = await response.json();
         showToast(error.detail || 'Create failed', 'error');
@@ -288,6 +309,8 @@ const AdminPage = () => {
     } catch (error) {
       console.error('Error creating group:', error);
       showToast('Create failed', 'error');
+    } finally {
+      setCreatingGroup(false);
     }
   };
 
@@ -295,15 +318,18 @@ const AdminPage = () => {
   const handleDeleteGroup = async (name) => {
     if (!window.confirm(`Delete group "${name}"? This will remove all participants.`)) return;
 
+    setDeletingGroup(name);
+    showToast(`Deleting group "${name}"...`, 'info');
+
     try {
       const response = await fetch(`${API}/subgroups/delete/${encodeURIComponent(name)}`, {
         method: 'DELETE',
       });
 
       if (response.ok) {
-        showToast('Group deleted', 'success');
-        fetchSubGroups();
-        fetchQueue();
+        showToast(`Group "${name}" deleted successfully`, 'success');
+        await fetchSubGroups();
+        await fetchQueue();
       } else {
         const error = await response.json();
         showToast(error.detail || 'Delete failed', 'error');
@@ -311,6 +337,8 @@ const AdminPage = () => {
     } catch (error) {
       console.error('Error deleting group:', error);
       showToast('Delete failed', 'error');
+    } finally {
+      setDeletingGroup(null);
     }
   };
 
@@ -318,31 +346,39 @@ const AdminPage = () => {
   const handleClearAllAndReset = async () => {
     if (!window.confirm('This will clear the current document and remove ALL participants from ALL queues. Are you sure?')) return;
 
+    setResetting(true);
+    showToast('Clearing document and resetting queues...', 'info');
+
     try {
-      // Clear document (this also clears all queues on the backend)
       const response = await fetch(`${API}/document/clear`, { method: 'DELETE' });
 
       if (response.ok) {
-        showToast('Document cleared and all queues reset', 'success');
-        fetchDocumentStatus();
-        fetchQueue();
-        fetchSubGroups();
+        showToast('Document cleared and all queues reset successfully', 'success');
+        await fetchDocumentStatus();
+        await fetchQueue();
+        await fetchSubGroups();
       } else {
         showToast('Reset failed', 'error');
       }
     } catch (error) {
       console.error('Error resetting:', error);
       showToast('Reset failed', 'error');
+    } finally {
+      setResetting(false);
     }
   };
 
   // Force reload document
   const handleForceReload = async () => {
+    setReloading(true);
+    showToast('Reloading document...', 'info');
+
     try {
       const response = await fetch(`${API}/document/auto-load?force=true`);
       if (response.ok) {
-        showToast('Document reloaded', 'success');
-        fetchDocumentStatus();
+        const data = await response.json();
+        showToast(`Document "${data.filename}" loaded successfully`, 'success');
+        await fetchDocumentStatus();
       } else {
         const error = await response.json();
         showToast(error.detail || 'Reload failed', 'error');
@@ -350,6 +386,8 @@ const AdminPage = () => {
     } catch (error) {
       console.error('Error reloading:', error);
       showToast('Reload failed', 'error');
+    } finally {
+      setReloading(false);
     }
   };
 
@@ -456,14 +494,33 @@ const AdminPage = () => {
               </div>
               <button
                 onClick={handleForceReload}
-                className="btn-secondary text-sm py-2 px-3 flex items-center gap-1"
+                disabled={reloading}
+                className="btn-secondary text-sm py-2 px-3 flex items-center gap-2 disabled:opacity-50"
               >
-                <RefreshCw size={16} />
-                Reload
+                {reloading ? (
+                  <Loader2 size={16} className="animate-spin" />
+                ) : (
+                  <RefreshCw size={16} />
+                )}
+                {reloading ? 'Reloading...' : 'Reload'}
               </button>
             </div>
           ) : (
-            <p className="text-white/70">No document loaded</p>
+            <div className="flex items-center justify-between">
+              <p className="text-white/70">No document loaded</p>
+              <button
+                onClick={handleForceReload}
+                disabled={reloading}
+                className="btn-primary text-sm py-2 px-3 flex items-center gap-2 disabled:opacity-50"
+              >
+                {reloading ? (
+                  <Loader2 size={16} className="animate-spin" />
+                ) : (
+                  <RefreshCw size={16} />
+                )}
+                {reloading ? 'Loading...' : 'Load Document'}
+              </button>
+            </div>
           )}
         </div>
 
@@ -474,9 +531,13 @@ const AdminPage = () => {
               <FolderOpen size={20} />
               PDF Library (Date-based)
             </h3>
-            <label className="btn-primary text-sm py-2 px-4 cursor-pointer flex items-center gap-2">
-              <Upload size={16} />
-              Upload PDF
+            <label className={`btn-primary text-sm py-2 px-4 cursor-pointer flex items-center gap-2 ${uploading ? 'opacity-50 cursor-not-allowed' : ''}`}>
+              {uploading ? (
+                <Loader2 size={16} className="animate-spin" />
+              ) : (
+                <Upload size={16} />
+              )}
+              {uploading ? 'Uploading...' : 'Upload PDF'}
               <input
                 type="file"
                 accept=".pdf"
@@ -491,7 +552,7 @@ const AdminPage = () => {
           </p>
           {loadingLibrary ? (
             <div className="flex justify-center py-8">
-              <div className="animate-spin rounded-full h-8 w-8 border-t-2 border-b-2 border-blue-500"></div>
+              <Loader2 size={32} className="animate-spin text-blue-500" />
             </div>
           ) : libraryFiles.length === 0 ? (
             <p className="text-white/50 text-center py-4">No PDFs in library</p>
@@ -505,9 +566,14 @@ const AdminPage = () => {
                   </div>
                   <button
                     onClick={() => handleDeleteFile(file.filename, false)}
-                    className="p-2 text-red-400 hover:bg-red-500/20 rounded-lg transition-all"
+                    disabled={deletingFile === file.filename}
+                    className="p-2 text-red-400 hover:bg-red-500/20 rounded-lg transition-all disabled:opacity-50"
                   >
-                    <Trash2 size={18} />
+                    {deletingFile === file.filename ? (
+                      <Loader2 size={18} className="animate-spin" />
+                    ) : (
+                      <Trash2 size={18} />
+                    )}
                   </button>
                 </div>
               ))}
@@ -522,9 +588,13 @@ const AdminPage = () => {
               <FolderOpen size={20} />
               Random Folder (Fallback)
             </h3>
-            <label className="btn-secondary text-sm py-2 px-4 cursor-pointer flex items-center gap-2">
-              <Upload size={16} />
-              Upload to Random
+            <label className={`btn-secondary text-sm py-2 px-4 cursor-pointer flex items-center gap-2 ${uploading ? 'opacity-50 cursor-not-allowed' : ''}`}>
+              {uploading ? (
+                <Loader2 size={16} className="animate-spin" />
+              ) : (
+                <Upload size={16} />
+              )}
+              {uploading ? 'Uploading...' : 'Upload to Random'}
               <input
                 type="file"
                 accept=".pdf"
@@ -550,9 +620,14 @@ const AdminPage = () => {
                   </div>
                   <button
                     onClick={() => handleDeleteFile(file.filename, true)}
-                    className="p-2 text-red-400 hover:bg-red-500/20 rounded-lg transition-all"
+                    disabled={deletingFile === `random-${file.filename}`}
+                    className="p-2 text-red-400 hover:bg-red-500/20 rounded-lg transition-all disabled:opacity-50"
                   >
-                    <Trash2 size={18} />
+                    {deletingFile === `random-${file.filename}` ? (
+                      <Loader2 size={18} className="animate-spin" />
+                    ) : (
+                      <Trash2 size={18} />
+                    )}
                   </button>
                 </div>
               ))}
@@ -576,15 +651,21 @@ const AdminPage = () => {
               placeholder="New group name"
               className="input-field flex-1"
               onKeyPress={(e) => e.key === 'Enter' && handleCreateGroup()}
+              disabled={creatingGroup}
               data-testid="new-group-name-input"
             />
             <button
               onClick={handleCreateGroup}
-              className="btn-primary flex items-center gap-2"
+              disabled={creatingGroup || !newGroupName.trim()}
+              className="btn-primary flex items-center gap-2 disabled:opacity-50"
               data-testid="create-group-admin-btn"
             >
-              <Plus size={18} />
-              Create Group
+              {creatingGroup ? (
+                <Loader2 size={18} className="animate-spin" />
+              ) : (
+                <Plus size={18} />
+              )}
+              {creatingGroup ? 'Creating...' : 'Create Group'}
             </button>
           </div>
 
@@ -593,7 +674,11 @@ const AdminPage = () => {
             <p className="text-sm text-white/70 mb-2">
               Groups ({subGroups.length}) • Total Participants: {getTotalParticipants()}
             </p>
-            {subGroups.length === 0 ? (
+            {loadingQueue ? (
+              <div className="flex justify-center py-8">
+                <Loader2 size={32} className="animate-spin text-blue-500" />
+              </div>
+            ) : subGroups.length === 0 ? (
               <p className="text-white/50 text-center py-4">No groups created</p>
             ) : (
               <div className="space-y-3 max-h-64 overflow-y-auto">
@@ -610,10 +695,15 @@ const AdminPage = () => {
                           {group.name !== 'General' && (
                             <button
                               onClick={() => handleDeleteGroup(group.name)}
-                              className="p-2 text-red-400 hover:bg-red-500/20 rounded-lg transition-all"
+                              disabled={deletingGroup === group.name}
+                              className="p-2 text-red-400 hover:bg-red-500/20 rounded-lg transition-all disabled:opacity-50"
                               title="Delete group"
                             >
-                              <X size={18} />
+                              {deletingGroup === group.name ? (
+                                <Loader2 size={18} className="animate-spin" />
+                              ) : (
+                                <X size={18} />
+                              )}
                             </button>
                           )}
                         </div>
@@ -652,11 +742,16 @@ const AdminPage = () => {
             </div>
             <button
               onClick={handleClearAllAndReset}
-              className="btn-danger flex items-center gap-2"
+              disabled={resetting}
+              className="btn-danger flex items-center gap-2 disabled:opacity-50"
               data-testid="reset-all-btn"
             >
-              <Trash2 size={18} />
-              Clear All & Reset
+              {resetting ? (
+                <Loader2 size={18} className="animate-spin" />
+              ) : (
+                <Trash2 size={18} />
+              )}
+              {resetting ? 'Resetting...' : 'Clear All & Reset'}
             </button>
           </div>
         </div>
