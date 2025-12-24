@@ -510,7 +510,10 @@ const HomePage = () => {
       setHasStartedReading(false);
     }
   }, [queueStatus?.isPosition1, wasPosition1, wasPosition2, hasStartedReading, startPosition2Timer]);
-      
+
+  // Mute audio when not position 1
+  useEffect(() => {
+    if (!queueStatus?.isPosition1) {
       // Mute when not position 1
       if (audioManager.current && queueStatus) {
         const currentMuteState = audioManager.current.getMuteState();
