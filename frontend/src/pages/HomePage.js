@@ -864,16 +864,34 @@ const HomePage = () => {
                       <SkipForward size={20} />
                       Skip
                     </button>
+                    <button
+                      onClick={leaveQueue}
+                      className="btn-danger flex items-center gap-2"
+                      data-testid="leave-queue-btn"
+                    >
+                      <LogOut size={18} />
+                      Leave Queue
+                    </button>
                   </>
                 ) : (
-                  <button
-                    onClick={() => handleAction('finish')}
-                    className="btn-primary flex items-center gap-2"
-                    data-testid="finish-btn"
-                  >
-                    <Check size={20} />
-                    Finish Reading
-                  </button>
+                  <>
+                    <button
+                      onClick={() => handleAction('finish')}
+                      className="btn-primary flex items-center gap-2"
+                      data-testid="finish-btn"
+                    >
+                      <Check size={20} />
+                      Finish Reading
+                    </button>
+                    <button
+                      onClick={leaveQueue}
+                      className="btn-danger flex items-center gap-2"
+                      data-testid="leave-queue-btn"
+                    >
+                      <LogOut size={18} />
+                      Leave Queue
+                    </button>
+                  </>
                 )}
               </div>
             )}
@@ -893,13 +911,29 @@ const HomePage = () => {
                   <p className="text-yellow-400 font-semibold">You&apos;re next!</p>
                   <p className="text-sm text-white/70">Be ready to start reading</p>
                 </div>
+                <button
+                  onClick={leaveQueue}
+                  className="btn-danger flex items-center gap-2"
+                  data-testid="leave-queue-btn"
+                >
+                  <LogOut size={18} />
+                  Leave Queue
+                </button>
               </div>
             )}
 
-            {/* Other positions */}
+            {/* Other positions - show Leave Queue button */}
             {!queueStatus?.isPosition1 && !queueStatus?.isPosition2 && (
-              <div className="text-right">
+              <div className="flex items-center gap-4">
                 <p className="text-sm text-white/70">Your name: <span className="text-white font-medium">{name}</span></p>
+                <button
+                  onClick={leaveQueue}
+                  className="btn-danger flex items-center gap-2"
+                  data-testid="leave-queue-btn"
+                >
+                  <LogOut size={18} />
+                  Leave Queue
+                </button>
               </div>
             )}
           </div>
