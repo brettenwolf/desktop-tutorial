@@ -267,11 +267,11 @@ const HomePage = () => {
 
         if (response.ok) {
           setStatusMessage('Moved to end of queue due to inactivity.');
-          showToast('Moved to end of queue due to inactivity', 'info');
+          // Removed toast - only show status message inline
           fetchQueueStatus();
         }
       } catch (error) {
-        console.error('Position 2 auto-skip error:', error);
+        console.error('Auto-skip error:', error);
       }
       
       clearPosition2Timer();
