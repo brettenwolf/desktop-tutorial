@@ -465,18 +465,21 @@ const HomePage = () => {
   // Clear status message when position changes significantly
   useEffect(() => {
     // Clear status message immediately when becoming Position 1 or Position 2
-    if (queueStatus?.isPosition1 || queueStatus?.isPosition2) {
-      if (statusMessage && !statusMessage.includes('inactivity')) {
-        // Clear non-inactivity messages when at position 1 or 2
-        setStatusMessage(null);
-      }
+    // Clear ALL status messages when at position 1 (fresh start)
+    if (queueStatus?.isPosition1 && statusMessage) {
+      setStatusMessage(null);
     }
     
-    // Clear any status message after 5 seconds when in lower positions
+    // Clear status messages when at position 2 (except inactivity messages which should show briefly)
+    if (queueStatus?.isPosition2 && statusMessage && !statusMessage.includes('inactivity')) {
+      setStatusMessage(null);
+    }
+    
+    // Clear any status message after 3 seconds when in lower positions
     if (queueStatus && !queueStatus.isPosition1 && !queueStatus.isPosition2 && statusMessage) {
       const timer = setTimeout(() => {
         setStatusMessage(null);
-      }, 5000);
+      }, 3000);
       return () => clearTimeout(timer);
     }
   }, [queueStatus?.position, queueStatus?.isPosition1, queueStatus?.isPosition2, statusMessage]);
