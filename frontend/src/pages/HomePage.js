@@ -937,20 +937,6 @@ const HomePage = () => {
               </div>
             )}
           </div>
-
-          {/* Audio Status */}
-          {audioInitialized && (
-            <div className="mt-3 flex items-center gap-2 text-sm">
-              {isMuted ? (
-                <VolumeX size={14} className="text-red-400" />
-              ) : (
-                <Volume2 size={14} className="text-green-400" />
-              )}
-              <span className="text-white/70">
-                {isMuted ? 'Microphone muted' : 'Microphone active'}
-              </span>
-            </div>
-          )}
         </div>
       </div>
 
