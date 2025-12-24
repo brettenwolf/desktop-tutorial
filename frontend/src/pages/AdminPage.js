@@ -332,8 +332,6 @@ const AdminPage = () => {
 
   // Remove individual participant
   const handleRemoveParticipant = async (sessionId, name) => {
-    if (!window.confirm(`Remove "${name}" from the queue?`)) return;
-
     setRemovingParticipant(sessionId);
     console.log(`Removing participant: ${name} (${sessionId})`);
 
