@@ -743,7 +743,7 @@ const HomePage = () => {
             
             {queueStatus?.isPosition1 && (
               <div className="mt-4 pt-4 border-t border-white/20">
-                <p className="text-green-400 font-semibold text-center">🎉 It's Your Turn!</p>
+                <p className="text-green-400 font-semibold text-center">🎉 It&apos;s Your Turn!</p>
               </div>
             )}
           </div>
