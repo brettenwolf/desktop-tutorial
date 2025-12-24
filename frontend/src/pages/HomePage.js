@@ -613,7 +613,7 @@ const HomePage = () => {
                 <section>
                   <h3 className="text-lg font-semibold text-yellow-400 mb-3">Position 2 Timer</h3>
                   <p className="text-white/80 leading-relaxed">
-                    When you're in Position 2 (next up), a 30-second timer starts. This gives you time to prepare. 
+                    When you're in Position 2 (next up), a 10-second timer starts. This gives you time to prepare. 
                     If the timer runs out without action, you'll automatically be moved to the back of the queue 
                     to keep the session flowing smoothly.
                   </p>
