@@ -663,7 +663,7 @@ async def upload_pdf_to_library(file: UploadFile = File(...)):
         should_clear = is_currently_loaded or (is_todays_pdf and current_document["data"] is not None)
         
         if should_clear:
-            logger.info(f"Clearing document from memory before upload")
+            logger.info("Clearing document from memory before upload")
             current_document["data"] = None
             current_document["filename"] = None
             current_document["contentType"] = None
