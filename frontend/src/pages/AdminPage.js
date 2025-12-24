@@ -528,14 +528,15 @@ const AdminPage = () => {
               <input
                 type="file"
                 accept=".pdf"
-                onChange={(e) => handleLibraryUpload(e, true)}
+                multiple
+                onChange={handleRandomUpload}
                 className="hidden"
                 disabled={uploading}
               />
             </label>
           </div>
           <p className="text-sm text-white/70 mb-4">
-            PDFs here are used randomly when no date-specific PDF is found
+            PDFs here are used randomly when no date-specific PDF is found. You can select multiple files.
           </p>
           {randomFiles.length === 0 ? (
             <p className="text-white/50 text-center py-4">No PDFs in Random folder</p>
