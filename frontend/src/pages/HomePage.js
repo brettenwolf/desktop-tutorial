@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Users, BookOpen, Mic, MicOff, SkipForward, Play, Check, LogOut, Volume2, VolumeX } from 'lucide-react';
 import Toast from '../components/Toast';
@@ -7,6 +7,9 @@ import AudioManager from '../utils/AudioManager';
 
 const BACKEND_URL = process.env.REACT_APP_BACKEND_URL;
 const API = `${BACKEND_URL}/api`;
+
+// Timer duration for Position 2 (in seconds)
+const POSITION_2_TIMER_DURATION = 30;
 
 const HomePage = () => {
   const navigate = useNavigate();
@@ -23,6 +26,10 @@ const HomePage = () => {
   const [wasPosition2, setWasPosition2] = useState(false);
   const [hasStartedReading, setHasStartedReading] = useState(false);
   const [statusMessage, setStatusMessage] = useState(null);
+  
+  // Position 2 timer state
+  const [position2Timer, setPosition2Timer] = useState(POSITION_2_TIMER_DURATION);
+  const [isPosition2TimerActive, setIsPosition2TimerActive] = useState(false);
   
   // Sub-group state
   const [availableSubGroups, setAvailableSubGroups] = useState([]);
@@ -46,6 +53,8 @@ const HomePage = () => {
   // Refs for intervals
   const pollingInterval = useRef(null);
   const documentPollingInterval = useRef(null);
+  const position2TimerInterval = useRef(null);
+  const position2TimeoutRef = useRef(null);
 
   // Toast helper
   const showToast = (message, type = 'info') => {
@@ -181,6 +190,7 @@ const HomePage = () => {
   const handleSessionEnd = async () => {
     if (pollingInterval.current) clearInterval(pollingInterval.current);
     if (documentPollingInterval.current) clearInterval(documentPollingInterval.current);
+    clearPosition2Timer();
     
     if (audioManager.current) {
       await audioManager.current.cleanup();
@@ -206,6 +216,62 @@ const HomePage = () => {
     showToast('Session ended by Admin', 'info');
   };
 
+  // Clear Position 2 timer
+  const clearPosition2Timer = () => {
+    if (position2TimerInterval.current) {
+      clearInterval(position2TimerInterval.current);
+      position2TimerInterval.current = null;
+    }
+    if (position2TimeoutRef.current) {
+      clearTimeout(position2TimeoutRef.current);
+      position2TimeoutRef.current = null;
+    }
+    setPosition2Timer(POSITION_2_TIMER_DURATION);
+    setIsPosition2TimerActive(false);
+  };
+
+  // Start Position 2 timer
+  const startPosition2Timer = useCallback(() => {
+    // Clear any existing timer
+    clearPosition2Timer();
+    
+    setIsPosition2TimerActive(true);
+    setPosition2Timer(POSITION_2_TIMER_DURATION);
+    
+    // Countdown interval
+    position2TimerInterval.current = setInterval(() => {
+      setPosition2Timer(prev => {
+        if (prev <= 1) {
+          return 0;
+        }
+        return prev - 1;
+      });
+    }, 1000);
+    
+    // Auto-skip timeout
+    position2TimeoutRef.current = setTimeout(async () => {
+      if (!sessionId) return;
+      
+      try {
+        const response = await fetch(`${API}/queue/action`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ sessionId, action: 'skip' }),
+        });
+
+        if (response.ok) {
+          setStatusMessage('Moved to end of queue due to inactivity.');
+          showToast('Moved to end of queue due to inactivity', 'info');
+          fetchQueueStatus();
+        }
+      } catch (error) {
+        console.error('Position 2 auto-skip error:', error);
+      }
+      
+      clearPosition2Timer();
+    }, POSITION_2_TIMER_DURATION * 1000);
+  }, [sessionId]);
+
   // Start polling
   const startPolling = () => {
     if (pollingInterval.current) clearInterval(pollingInterval.current);
@@ -218,6 +284,9 @@ const HomePage = () => {
   // Handle queue action
   const handleAction = async (action) => {
     if (!sessionId) return;
+
+    // Clear Position 2 timer when taking action
+    clearPosition2Timer();
 
     // Mute audio when skipping or finishing
     if ((action === 'skip' || action === 'finish') && audioManager.current) {
@@ -276,6 +345,7 @@ const HomePage = () => {
     try {
       if (pollingInterval.current) clearInterval(pollingInterval.current);
       if (documentPollingInterval.current) clearInterval(documentPollingInterval.current);
+      clearPosition2Timer();
 
       await fetch(`${API}/queue/leave/${sessionId}`, { method: 'DELETE' });
 
@@ -372,8 +442,8 @@ const HomePage = () => {
 
   // Clear status message when position changes
   useEffect(() => {
-    if (queueStatus && !queueStatus.isPosition1 && statusMessage) {
-      // Clear message after 3 seconds when not at position 1
+    if (queueStatus && !queueStatus.isPosition1 && !queueStatus.isPosition2 && statusMessage) {
+      // Clear message after 3 seconds when not at position 1 or 2
       const timer = setTimeout(() => {
         setStatusMessage(null);
       }, 3000);
@@ -390,6 +460,7 @@ const HomePage = () => {
     return () => {
       if (pollingInterval.current) clearInterval(pollingInterval.current);
       if (documentPollingInterval.current) clearInterval(documentPollingInterval.current);
+      clearPosition2Timer();
     };
   }, [userRole]);
 
@@ -399,16 +470,28 @@ const HomePage = () => {
     }
   }, [sessionId, hasJoined]);
 
+  // Handle Position 2 timer
+  useEffect(() => {
+    if (queueStatus?.isPosition2 && !wasPosition2) {
+      // Just became Position 2, start the timer
+      startPosition2Timer();
+      setWasPosition2(true);
+    } else if (!queueStatus?.isPosition2 && wasPosition2) {
+      // No longer Position 2, clear timer
+      clearPosition2Timer();
+      setWasPosition2(false);
+    }
+  }, [queueStatus?.isPosition2, wasPosition2, startPosition2Timer]);
+
   useEffect(() => {
     if (queueStatus?.isPosition1) {
-      if (wasPosition2) {
-        if (Notification.permission === 'granted') {
-          new Notification("It's Your Turn!", { body: 'You are now at position 1. Please select an action.' });
-        }
-        setWasPosition2(false);
-      }
+      // Clear Position 2 timer if we become Position 1
+      clearPosition2Timer();
+      setWasPosition2(false);
       
-      // Auto-mute handling is done in handleAction
+      if (Notification.permission === 'granted') {
+        new Notification("It's Your Turn!", { body: 'You are now at position 1. Please select an action.' });
+      }
     } else {
       setHasStartedReading(false);
       
@@ -421,11 +504,7 @@ const HomePage = () => {
         setIsMuted(true);
       }
     }
-
-    if (queueStatus?.isPosition2) {
-      setWasPosition2(true);
-    }
-  }, [queueStatus?.isPosition1, queueStatus?.isPosition2, wasPosition2]);
+  }, [queueStatus?.isPosition1]);
 
   useEffect(() => {
     if (userRole === 'participant' && !documentStatus.loaded) {
@@ -593,9 +672,9 @@ const HomePage = () => {
           <div className="flex flex-wrap items-center justify-between gap-4">
             {/* Position Info */}
             <div className="flex items-center gap-6">
-              <div className={`text-center px-4 py-2 rounded-lg ${queueStatus?.isPosition1 ? 'bg-green-500/20 ring-2 ring-green-500' : 'bg-white/10'}`}>
+              <div className={`text-center px-4 py-2 rounded-lg ${queueStatus?.isPosition1 ? 'bg-green-500/20 ring-2 ring-green-500' : queueStatus?.isPosition2 ? 'bg-yellow-500/20 ring-2 ring-yellow-500' : 'bg-white/10'}`}>
                 <p className="text-xs text-white/70 uppercase">Your Position</p>
-                <p className={`text-3xl font-bold ${queueStatus?.isPosition1 ? 'text-green-400' : ''}`}>
+                <p className={`text-3xl font-bold ${queueStatus?.isPosition1 ? 'text-green-400' : queueStatus?.isPosition2 ? 'text-yellow-400' : ''}`}>
                   {queueStatus?.position || '-'}
                 </p>
               </div>
@@ -617,7 +696,7 @@ const HomePage = () => {
               </div>
             </div>
 
-            {/* Action Buttons - Only show when Position 1 */}
+            {/* Action Buttons - Position 1 */}
             {queueStatus?.isPosition1 && (
               <div className="flex items-center gap-3">
                 {!hasStartedReading ? (
@@ -652,13 +731,28 @@ const HomePage = () => {
               </div>
             )}
 
-            {/* Position 1 indicator when not your turn */}
-            {!queueStatus?.isPosition1 && (
+            {/* Position 2 Timer and Info */}
+            {queueStatus?.isPosition2 && (
+              <div className="flex items-center gap-4">
+                {isPosition2TimerActive && (
+                  <div className={`text-center px-4 py-2 rounded-lg ${position2Timer <= 10 ? 'bg-red-500/20' : 'bg-yellow-500/20'}`}>
+                    <p className="text-xs text-white/70 uppercase">Get Ready In</p>
+                    <p className={`text-2xl font-bold ${position2Timer <= 10 ? 'text-red-400' : 'text-yellow-400'}`}>
+                      {position2Timer}s
+                    </p>
+                  </div>
+                )}
+                <div className="text-right">
+                  <p className="text-yellow-400 font-semibold">You&apos;re next!</p>
+                  <p className="text-sm text-white/70">Be ready to start reading</p>
+                </div>
+              </div>
+            )}
+
+            {/* Other positions */}
+            {!queueStatus?.isPosition1 && !queueStatus?.isPosition2 && (
               <div className="text-right">
                 <p className="text-sm text-white/70">Your name: <span className="text-white font-medium">{name}</span></p>
-                {queueStatus?.isPosition2 && (
-                  <p className="text-yellow-400 text-sm font-medium mt-1">You&apos;re next!</p>
-                )}
               </div>
             )}
           </div>
