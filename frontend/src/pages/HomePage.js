@@ -109,6 +109,8 @@ const HomePage = () => {
     }
 
     setLoading(true);
+    setStatusMessage(null); // Clear any previous status message
+    
     try {
       const response = await fetch(`${API}/queue/join`, {
         method: 'POST',
@@ -124,6 +126,7 @@ const HomePage = () => {
       const data = await response.json();
       setSessionId(data.sessionId);
       setHasJoined(true);
+      setStatusMessage(null); // Ensure status is clear for new session
       
       localStorage.setItem('sessionId', data.sessionId);
       localStorage.setItem('userName', name.trim());
