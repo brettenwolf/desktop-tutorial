@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Users, BookOpen, Mic, MicOff, SkipForward, Play, Check, LogOut, Volume2, VolumeX } from 'lucide-react';
+import { Users, BookOpen, Mic, MicOff, SkipForward, Play, Check, LogOut, Volume2, VolumeX, Info, X } from 'lucide-react';
 import Toast from '../components/Toast';
 import PDFViewer from '../components/PDFViewer';
 import AudioManager from '../utils/AudioManager';
