@@ -715,16 +715,29 @@ const AdminPage = () => {
                         <p className="font-semibold">{group.name}</p>
                         <p className="text-sm text-white/70">{groupQueue.length} participant{groupQueue.length !== 1 ? 's' : ''}</p>
                       </div>
-                      {groupQueue.length > 0 && (
-                        <button
-                          onClick={() => handleClearGroupQueue(group.name)}
-                          disabled={isClearing}
-                          className="btn-danger text-xs py-1 px-3 flex items-center gap-1 disabled:opacity-50"
-                        >
-                          {isClearing ? <Loader2 size={14} className="animate-spin" /> : <Trash2 size={14} />}
-                          {isClearing ? 'Clearing...' : 'Clear Group'}
-                        </button>
-                      )}
+                      <div className="flex items-center gap-2">
+                        {groupQueue.length > 0 && (
+                          <button
+                            onClick={() => handleClearGroupQueue(group.name)}
+                            disabled={isClearing}
+                            className="btn-danger text-xs py-1 px-3 flex items-center gap-1 disabled:opacity-50"
+                          >
+                            {isClearing ? <Loader2 size={14} className="animate-spin" /> : <Trash2 size={14} />}
+                            {isClearing ? 'Clearing...' : 'Clear Queue'}
+                          </button>
+                        )}
+                        {group.name.toLowerCase() !== 'general' && (
+                          <button
+                            onClick={() => handleDeleteGroup(group.name)}
+                            disabled={deletingGroup === group.name}
+                            className="btn-secondary text-xs py-1 px-3 flex items-center gap-1 disabled:opacity-50 border border-red-500/50 text-red-400 hover:bg-red-500/20"
+                            title="Delete this group permanently"
+                          >
+                            {deletingGroup === group.name ? <Loader2 size={14} className="animate-spin" /> : <Trash2 size={14} />}
+                            {deletingGroup === group.name ? 'Deleting...' : 'Delete Group'}
+                          </button>
+                        )}
+                      </div>
                     </div>
                     {groupQueue.length > 0 && (
                       <div className="mt-3 space-y-1">
