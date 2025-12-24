@@ -508,6 +508,7 @@ async def get_document_status():
 @api_router.delete("/document/clear")
 async def clear_document(loaderSessionId: str = None):
     global current_document, cache_version
+    # Note: We do NOT clear random_pdf_cache here - it should persist for the entire day
     
     current_document["data"] = None
     current_document["filename"] = None
@@ -518,11 +519,11 @@ async def clear_document(loaderSessionId: str = None):
     
     await db.queue.delete_many({})
     
-    logger.info(f"Document cleared by loader: {loaderSessionId}, queue reset, cache version: {cache_version}")
+    logger.info(f"Document cleared by loader: {loaderSessionId}, queue reset, cache version: {cache_version}. Random PDF cache preserved.")
     
     return {
         "success": True,
-        "message": "Document cleared and queue reset",
+        "message": "Document cleared and queue reset (random PDF selection preserved for today)",
         "cacheVersion": cache_version
     }
 
