@@ -609,7 +609,7 @@ async def get_document_page(page_number: int, quality: int = 90, scale: float = 
         if pdf_document is not None:
             try:
                 pdf_document.close()
-            except:
+            except Exception:
                 pass
 
 
