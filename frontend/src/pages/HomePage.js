@@ -24,6 +24,9 @@ const HomePage = () => {
   // Queue state
   const [queueStatus, setQueueStatus] = useState(null);
   const [wasPosition2, setWasPosition2] = useState(false);
+  // Track if we just became Position 1 (for timer)
+  const [justBecamePosition1, setJustBecamePosition1] = useState(false);
+  const [wasPosition1, setWasPosition1] = useState(false);
   const [hasStartedReading, setHasStartedReading] = useState(false);
   const [statusMessage, setStatusMessage] = useState(null);
   
