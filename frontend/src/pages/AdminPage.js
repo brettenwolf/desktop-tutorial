@@ -347,22 +347,30 @@ const AdminPage = () => {
     if (!window.confirm('This will clear the current document and remove ALL participants from ALL queues. Are you sure?')) return;
 
     setResetting(true);
-    showToast('Clearing document and resetting queues...', 'info');
-
+    
     try {
       const response = await fetch(`${API}/document/clear`, { method: 'DELETE' });
 
       if (response.ok) {
-        showToast('Document cleared and all queues reset successfully', 'success');
-        await fetchDocumentStatus();
-        await fetchQueue();
-        await fetchSubGroups();
+        const data = await response.json();
+        // Immediately refresh all data
+        setQueueData([]);
+        setDocumentStatus({ loaded: false, filename: null });
+        
+        // Then fetch fresh data
+        await Promise.all([
+          fetchDocumentStatus(),
+          fetchQueue(),
+          fetchSubGroups()
+        ]);
+        
+        showToast(data.message || 'Document cleared and all queues reset successfully', 'success');
       } else {
         showToast('Reset failed', 'error');
       }
     } catch (error) {
       console.error('Error resetting:', error);
-      showToast('Reset failed', 'error');
+      showToast('Reset failed - please try again', 'error');
     } finally {
       setResetting(false);
     }
