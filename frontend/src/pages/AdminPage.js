@@ -364,8 +364,6 @@ const AdminPage = () => {
 
   // Clear ALL queues
   const handleClearAllQueues = async () => {
-    if (!window.confirm('Clear ALL participants from ALL groups?')) return;
-
     setClearingAllQueues(true);
     console.log('Clearing all queues');
 
