@@ -959,24 +959,15 @@ async def shutdown_db_client():
     client.close()
 
 async def auto_cleanup_inactive_subgroups():
-    """Background task that automatically cleans up inactive or empty sub-groups"""
+    """Background task - DISABLED: Groups now persist until manually removed by admin"""
+    # This task has been disabled to give groups permanence
+    # Groups will only be removed when an admin explicitly deletes them
     while True:
         try:
-            await asyncio.sleep(60)  # Check every 60 seconds
-            
-            all_participants = await db.queue.find().to_list(100)
-            active_subgroups = set(p.get("subGroup") for p in all_participants)
-            
-            all_subgroups = await db.subgroups.find({}).to_list(100)
-            
-            for sg in all_subgroups:
-                sg_name = sg.get("name")
-                if sg_name and sg_name != "General" and sg_name not in active_subgroups:
-                    await db.subgroups.delete_one({"name": sg_name})
-                    logger.info(f"Auto-cleaned inactive sub-group: {sg_name}")
-                    
+            await asyncio.sleep(3600)  # Sleep for 1 hour (task is effectively disabled)
+            # No auto-cleanup - groups persist until admin removes them
         except asyncio.CancelledError:
             break
         except Exception as e:
-            logger.error(f"Error in auto-cleanup task: {e}")
-            await asyncio.sleep(60)
+            logger.error(f"Error in cleanup task: {e}")
+            await asyncio.sleep(3600)
