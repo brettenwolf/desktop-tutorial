@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { ArrowLeft, Upload, Trash2, RefreshCw, Users, FileText, FolderOpen, Plus, X, AlertTriangle, Loader2 } from 'lucide-react';
+import { ArrowLeft, Upload, Trash2, RefreshCw, Users, FileText, FolderOpen, Plus, X, AlertTriangle, Loader2, UserMinus } from 'lucide-react';
 import Toast from '../components/Toast';
 
 const BACKEND_URL = process.env.REACT_APP_BACKEND_URL;
@@ -31,10 +31,12 @@ const AdminPage = () => {
   
   // Action states for loading indicators
   const [deletingFile, setDeletingFile] = useState(null);
-  const [resetting, setResetting] = useState(false);
+  const [resettingAll, setResettingAll] = useState(false);
+  const [clearingGroup, setClearingGroup] = useState(null);
   const [reloading, setReloading] = useState(false);
   const [creatingGroup, setCreatingGroup] = useState(false);
   const [deletingGroup, setDeletingGroup] = useState(null);
+  const [removingParticipant, setRemovingParticipant] = useState(null);
   
   // Toast state
   const [toast, setToast] = useState({ visible: false, message: '', type: 'info' });
@@ -197,7 +199,6 @@ const AdminPage = () => {
     const files = Array.from(e.target.files);
     if (!files.length) return;
 
-    // Validate all files are PDFs
     const invalidFiles = files.filter(f => !f.name.endsWith('.pdf'));
     if (invalidFiles.length > 0) {
       showToast(`${invalidFiles.length} file(s) skipped - only PDFs allowed`, 'error');
@@ -253,7 +254,6 @@ const AdminPage = () => {
 
     const fileKey = `${isRandom ? 'random-' : ''}${filename}`;
     setDeletingFile(fileKey);
-    showToast(`Deleting ${filename}...`, 'info');
 
     try {
       const endpoint = isRandom 
@@ -289,7 +289,6 @@ const AdminPage = () => {
     }
 
     setCreatingGroup(true);
-    showToast('Creating group...', 'info');
 
     try {
       const response = await fetch(`${API}/subgroups/create`, {
@@ -319,7 +318,6 @@ const AdminPage = () => {
     if (!window.confirm(`Delete group "${name}"? This will remove all participants.`)) return;
 
     setDeletingGroup(name);
-    showToast(`Deleting group "${name}"...`, 'info');
 
     try {
       const response = await fetch(`${API}/subgroups/delete/${encodeURIComponent(name)}`, {
@@ -342,29 +340,105 @@ const AdminPage = () => {
     }
   };
 
+  // Clear queue for specific group
+  const handleClearGroupQueue = async (groupName) => {
+    if (!window.confirm(`Clear all participants from "${groupName}"?`)) return;
+
+    setClearingGroup(groupName);
+
+    try {
+      const response = await fetch(`${API}/queue/clear/${encodeURIComponent(groupName)}`, {
+        method: 'DELETE',
+      });
+
+      if (response.ok) {
+        const data = await response.json();
+        showToast(data.message || `Cleared queue for ${groupName}`, 'success');
+        await fetchQueue();
+      } else {
+        showToast('Clear failed', 'error');
+      }
+    } catch (error) {
+      console.error('Error clearing group queue:', error);
+      showToast('Clear failed', 'error');
+    } finally {
+      setClearingGroup(null);
+    }
+  };
+
+  // Remove individual participant
+  const handleRemoveParticipant = async (sessionId, name) => {
+    if (!window.confirm(`Remove "${name}" from the queue?`)) return;
+
+    setRemovingParticipant(sessionId);
+
+    try {
+      const response = await fetch(`${API}/queue/remove/${sessionId}`, {
+        method: 'DELETE',
+      });
+
+      if (response.ok) {
+        const data = await response.json();
+        showToast(data.message || `Removed ${name} from queue`, 'success');
+        await fetchQueue();
+      } else {
+        const error = await response.json();
+        showToast(error.detail || 'Remove failed', 'error');
+      }
+    } catch (error) {
+      console.error('Error removing participant:', error);
+      showToast('Remove failed', 'error');
+    } finally {
+      setRemovingParticipant(null);
+    }
+  };
+
+  // Clear ALL queues (all groups)
+  const handleClearAllQueues = async () => {
+    if (!window.confirm('Clear ALL participants from ALL groups?')) return;
+
+    setResettingAll(true);
+
+    try {
+      const response = await fetch(`${API}/queue/clear-all`, { method: 'DELETE' });
+
+      if (response.ok) {
+        const data = await response.json();
+        setQueueData([]);
+        await fetchQueue();
+        showToast(data.message || 'All queues cleared', 'success');
+      } else {
+        showToast('Clear failed', 'error');
+      }
+    } catch (error) {
+      console.error('Error clearing all queues:', error);
+      showToast('Clear failed', 'error');
+    } finally {
+      setResettingAll(false);
+    }
+  };
+
   // Clear document and reset everything
   const handleClearAllAndReset = async () => {
-    if (!window.confirm('This will clear the current document and remove ALL participants from ALL queues. Are you sure?')) return;
+    if (!window.confirm('This will clear the current document AND remove ALL participants from ALL groups. Are you sure?')) return;
 
-    setResetting(true);
-    
+    setResettingAll(true);
+
     try {
       const response = await fetch(`${API}/document/clear`, { method: 'DELETE' });
 
       if (response.ok) {
         const data = await response.json();
-        // Immediately refresh all data
         setQueueData([]);
         setDocumentStatus({ loaded: false, filename: null });
         
-        // Then fetch fresh data
         await Promise.all([
           fetchDocumentStatus(),
           fetchQueue(),
           fetchSubGroups()
         ]);
         
-        showToast(data.message || 'Document cleared and all queues reset successfully', 'success');
+        showToast(data.message || 'Document cleared and all queues reset', 'success');
       } else {
         showToast('Reset failed', 'error');
       }
@@ -372,14 +446,13 @@ const AdminPage = () => {
       console.error('Error resetting:', error);
       showToast('Reset failed - please try again', 'error');
     } finally {
-      setResetting(false);
+      setResettingAll(false);
     }
   };
 
   // Force reload document
   const handleForceReload = async () => {
     setReloading(true);
-    showToast('Reloading document...', 'info');
 
     try {
       const response = await fetch(`${API}/document/auto-load?force=true`);
@@ -645,10 +718,24 @@ const AdminPage = () => {
 
         {/* Queue Management */}
         <div className="card">
-          <h3 className="font-semibold mb-4 flex items-center gap-2">
-            <Users size={20} />
-            Queue Management
-          </h3>
+          <div className="flex items-center justify-between mb-4">
+            <h3 className="font-semibold flex items-center gap-2">
+              <Users size={20} />
+              Queue Management
+            </h3>
+            <button
+              onClick={handleClearAllQueues}
+              disabled={resettingAll || getTotalParticipants() === 0}
+              className="btn-secondary text-sm py-2 px-3 flex items-center gap-2 disabled:opacity-50"
+            >
+              {resettingAll ? (
+                <Loader2 size={16} className="animate-spin" />
+              ) : (
+                <Trash2 size={16} />
+              )}
+              Clear All Queues
+            </button>
+          </div>
           
           {/* Create Group */}
           <div className="flex gap-2 mb-4">
@@ -689,7 +776,7 @@ const AdminPage = () => {
             ) : subGroups.length === 0 ? (
               <p className="text-white/50 text-center py-4">No groups created</p>
             ) : (
-              <div className="space-y-3 max-h-64 overflow-y-auto">
+              <div className="space-y-3 max-h-96 overflow-y-auto">
                 {subGroups.map((group) => {
                   const groupQueue = queueData.filter(p => p.subGroup === group.name);
                   return (
@@ -700,6 +787,21 @@ const AdminPage = () => {
                           <p className="text-sm text-white/70">{groupQueue.length} participants</p>
                         </div>
                         <div className="flex gap-2">
+                          {groupQueue.length > 0 && (
+                            <button
+                              onClick={() => handleClearGroupQueue(group.name)}
+                              disabled={clearingGroup === group.name}
+                              className="btn-secondary text-xs py-1 px-2 flex items-center gap-1 disabled:opacity-50"
+                              title="Clear this group's queue"
+                            >
+                              {clearingGroup === group.name ? (
+                                <Loader2 size={14} className="animate-spin" />
+                              ) : (
+                                <Trash2 size={14} />
+                              )}
+                              Clear
+                            </button>
+                          )}
                           {group.name !== 'General' && (
                             <button
                               onClick={() => handleDeleteGroup(group.name)}
@@ -719,13 +821,27 @@ const AdminPage = () => {
                       {groupQueue.length > 0 && (
                         <div className="mt-3 space-y-1">
                           {groupQueue.map((p, idx) => (
-                            <div key={p.sessionId} className="flex items-center gap-2 text-sm">
-                              <span className={`w-6 h-6 rounded-full flex items-center justify-center text-xs ${
-                                idx === 0 ? 'bg-green-500' : idx === 1 ? 'bg-yellow-500' : 'bg-white/20'
-                              }`}>
-                                {idx + 1}
-                              </span>
-                              <span>{p.name}</span>
+                            <div key={p.sessionId} className="flex items-center justify-between text-sm bg-white/5 rounded px-2 py-1">
+                              <div className="flex items-center gap-2">
+                                <span className={`w-6 h-6 rounded-full flex items-center justify-center text-xs ${
+                                  idx === 0 ? 'bg-green-500' : idx === 1 ? 'bg-yellow-500' : 'bg-white/20'
+                                }`}>
+                                  {idx + 1}
+                                </span>
+                                <span>{p.name}</span>
+                              </div>
+                              <button
+                                onClick={() => handleRemoveParticipant(p.sessionId, p.name)}
+                                disabled={removingParticipant === p.sessionId}
+                                className="p-1 text-red-400 hover:bg-red-500/20 rounded transition-all disabled:opacity-50"
+                                title={`Remove ${p.name}`}
+                              >
+                                {removingParticipant === p.sessionId ? (
+                                  <Loader2 size={14} className="animate-spin" />
+                                ) : (
+                                  <UserMinus size={14} />
+                                )}
+                              </button>
                             </div>
                           ))}
                         </div>
@@ -744,23 +860,37 @@ const AdminPage = () => {
             <div className="flex items-center gap-3">
               <AlertTriangle size={24} className="text-red-400" />
               <div>
-                <p className="font-semibold text-red-400">Reset Session</p>
-                <p className="text-sm text-white/70">Clear document and remove all participants from all queues</p>
+                <p className="font-semibold text-red-400">Full System Reset</p>
+                <p className="text-sm text-white/70">Clear document AND remove all participants from all groups</p>
               </div>
             </div>
             <button
               onClick={handleClearAllAndReset}
-              disabled={resetting}
+              disabled={resettingAll}
               className="btn-danger flex items-center gap-2 disabled:opacity-50"
               data-testid="reset-all-btn"
             >
-              {resetting ? (
+              {resettingAll ? (
                 <Loader2 size={18} className="animate-spin" />
               ) : (
                 <Trash2 size={18} />
               )}
-              {resetting ? 'Resetting...' : 'Clear All & Reset'}
+              {resettingAll ? 'Resetting...' : 'Clear All & Reset'}
             </button>
+          </div>
+        </div>
+
+        {/* Info about daily reset */}
+        <div className="card bg-blue-500/10 border-blue-500/30">
+          <div className="flex items-center gap-3">
+            <RefreshCw size={20} className="text-blue-400" />
+            <div>
+              <p className="font-semibold text-blue-400">Automatic Daily Reset</p>
+              <p className="text-sm text-white/70">
+                All queues are automatically cleared at the start of each new day (CST timezone). 
+                The random PDF selection for the day is preserved.
+              </p>
+            </div>
           </div>
         </div>
       </div>
