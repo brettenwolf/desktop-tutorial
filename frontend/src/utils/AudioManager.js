@@ -356,7 +356,6 @@ class AudioManager {
             if (pc.iceConnectionState !== 'connected' && pc.iceConnectionState !== 'completed') {
               console.error(`Error adding ICE candidate from ${from}:`, e);
             }
-            }
           }
         }
       }
