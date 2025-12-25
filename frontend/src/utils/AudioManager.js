@@ -1,6 +1,7 @@
 /**
  * AudioManager - WebRTC-based audio streaming for group reading
  * Handles peer-to-peer audio connections within sub-groups
+ * iOS Safari compatible
  */
 class AudioManager {
   constructor(sessionId, subGroup, apiUrl) {
@@ -9,9 +10,12 @@ class AudioManager {
     this.apiUrl = apiUrl;
     this.localStream = null;
     this.peerConnections = {};
+    this.audioElements = {};
     this.isMuted = true;
     this.isInitialized = false;
     this.pollingInterval = null;
+    this.audioContext = null;
+    this.isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent) && !window.MSStream;
   }
 
   async initialize(startMuted = true) {
@@ -22,15 +26,32 @@ class AudioManager {
         return false;
       }
 
-      // Request microphone access
-      this.localStream = await navigator.mediaDevices.getUserMedia({
+      // Create AudioContext for iOS compatibility
+      const AudioContextClass = window.AudioContext || window.webkitAudioContext;
+      if (AudioContextClass) {
+        this.audioContext = new AudioContextClass();
+        // iOS requires AudioContext to be resumed after user interaction
+        if (this.audioContext.state === 'suspended') {
+          await this.audioContext.resume();
+        }
+      }
+
+      // Request microphone access with iOS-compatible constraints
+      const constraints = {
         audio: {
           echoCancellation: true,
           noiseSuppression: true,
           autoGainControl: true,
         },
         video: false,
-      });
+      };
+
+      // iOS Safari sometimes needs simpler constraints
+      if (this.isIOS) {
+        constraints.audio = true;
+      }
+
+      this.localStream = await navigator.mediaDevices.getUserMedia(constraints);
 
       // Set initial mute state
       this.isMuted = startMuted;
@@ -44,7 +65,7 @@ class AudioManager {
       this.startSignalPolling();
       this.connectToPeers();
 
-      console.log(`AudioManager initialized for sub-group: ${this.subGroup}`);
+      console.log(`AudioManager initialized for sub-group: ${this.subGroup} (iOS: ${this.isIOS})`);
       return true;
     } catch (error) {
       console.error('Error initializing audio:', error);
@@ -70,12 +91,83 @@ class AudioManager {
     }
   }
 
+  createAudioElement(peerId, stream) {
+    // Remove existing audio element if any
+    const existingAudio = document.getElementById(`audio-${peerId}`);
+    if (existingAudio) {
+      existingAudio.remove();
+    }
+
+    const audio = document.createElement('audio');
+    audio.id = `audio-${peerId}`;
+    audio.srcObject = stream;
+    audio.setAttribute('playsinline', 'true'); // Required for iOS
+    audio.setAttribute('autoplay', 'true');
+    
+    // iOS requires muted for autoplay, then we unmute
+    if (this.isIOS) {
+      audio.muted = true;
+    }
+    
+    // Add to DOM (hidden)
+    audio.style.display = 'none';
+    document.body.appendChild(audio);
+    
+    // Store reference
+    this.audioElements[peerId] = audio;
+
+    // Play with iOS handling
+    const playPromise = audio.play();
+    if (playPromise !== undefined) {
+      playPromise
+        .then(() => {
+          console.log(`Audio playing for peer ${peerId}`);
+          // Unmute after play starts on iOS
+          if (this.isIOS) {
+            setTimeout(() => {
+              audio.muted = false;
+            }, 100);
+          }
+        })
+        .catch(error => {
+          console.log(`Audio autoplay prevented for ${peerId}, waiting for user interaction:`, error);
+          // Store for later play on user interaction
+          this.pendingAudioPlay = audio;
+        });
+    }
+
+    return audio;
+  }
+
+  // Call this on user interaction (like clicking Unmute) to enable audio on iOS
+  async enableAudioPlayback() {
+    // Resume AudioContext if suspended
+    if (this.audioContext && this.audioContext.state === 'suspended') {
+      await this.audioContext.resume();
+    }
+
+    // Try to play any pending audio
+    for (const peerId of Object.keys(this.audioElements)) {
+      const audio = this.audioElements[peerId];
+      if (audio && audio.paused) {
+        try {
+          await audio.play();
+          audio.muted = false;
+          console.log(`Enabled audio playback for ${peerId}`);
+        } catch (e) {
+          console.log(`Still cannot play audio for ${peerId}:`, e);
+        }
+      }
+    }
+  }
+
   async createPeerConnection(peerId) {
     try {
       const config = {
         iceServers: [
           { urls: 'stun:stun.l.google.com:19302' },
           { urls: 'stun:stun1.l.google.com:19302' },
+          { urls: 'stun:stun2.l.google.com:19302' },
         ],
       };
 
@@ -92,11 +184,9 @@ class AudioManager {
       // Handle incoming tracks
       pc.ontrack = (event) => {
         console.log(`Received remote track from ${peerId}`);
-        const audio = new Audio();
-        audio.srcObject = event.streams[0];
-        audio.autoplay = true;
-        audio.id = `audio-${peerId}`;
-        document.body.appendChild(audio);
+        if (event.streams && event.streams[0]) {
+          this.createAudioElement(peerId, event.streams[0]);
+        }
       };
 
       // Handle ICE candidates
@@ -106,8 +196,20 @@ class AudioManager {
         }
       };
 
+      // Connection state logging
+      pc.onconnectionstatechange = () => {
+        console.log(`Peer ${peerId} connection state: ${pc.connectionState}`);
+      };
+
+      pc.oniceconnectionstatechange = () => {
+        console.log(`Peer ${peerId} ICE state: ${pc.iceConnectionState}`);
+      };
+
       // Create and send offer
-      const offer = await pc.createOffer();
+      const offer = await pc.createOffer({
+        offerToReceiveAudio: true,
+        offerToReceiveVideo: false,
+      });
       await pc.setLocalDescription(offer);
       await this.sendSignal(peerId, 'offer', { sdp: offer });
 
@@ -125,11 +227,14 @@ class AudioManager {
         // Handle incoming offer
         let pc = this.peerConnections[from];
         if (!pc) {
-          pc = new RTCPeerConnection({
+          const config = {
             iceServers: [
               { urls: 'stun:stun.l.google.com:19302' },
+              { urls: 'stun:stun1.l.google.com:19302' },
             ],
-          });
+          };
+          
+          pc = new RTCPeerConnection(config);
           this.peerConnections[from] = pc;
 
           if (this.localStream) {
@@ -139,17 +244,20 @@ class AudioManager {
           }
 
           pc.ontrack = (event) => {
-            const audio = new Audio();
-            audio.srcObject = event.streams[0];
-            audio.autoplay = true;
-            audio.id = `audio-${from}`;
-            document.body.appendChild(audio);
+            console.log(`Received remote track from ${from} (via offer)`);
+            if (event.streams && event.streams[0]) {
+              this.createAudioElement(from, event.streams[0]);
+            }
           };
 
           pc.onicecandidate = async (event) => {
             if (event.candidate) {
               await this.sendSignal(from, 'ice-candidate', { candidate: event.candidate });
             }
+          };
+
+          pc.onconnectionstatechange = () => {
+            console.log(`Peer ${from} connection state: ${pc.connectionState}`);
           };
         }
 
@@ -160,14 +268,21 @@ class AudioManager {
 
       } else if (type === 'answer') {
         const pc = this.peerConnections[from];
-        if (pc) {
+        if (pc && pc.signalingState !== 'stable') {
           await pc.setRemoteDescription(new RTCSessionDescription(data.sdp));
         }
 
       } else if (type === 'ice-candidate') {
         const pc = this.peerConnections[from];
         if (pc && data.candidate) {
-          await pc.addIceCandidate(new RTCIceCandidate(data.candidate));
+          try {
+            await pc.addIceCandidate(new RTCIceCandidate(data.candidate));
+          } catch (e) {
+            // Ignore ICE candidate errors if connection is already established
+            if (pc.iceConnectionState !== 'connected' && pc.iceConnectionState !== 'completed') {
+              console.error(`Error adding ICE candidate from ${from}:`, e);
+            }
+          }
         }
       }
     } catch (error) {
@@ -193,6 +308,7 @@ class AudioManager {
   }
 
   startSignalPolling() {
+    // Poll more frequently for better responsiveness
     this.pollingInterval = setInterval(async () => {
       try {
         const response = await fetch(`${this.apiUrl}/webrtc/signals/${this.sessionId}`);
@@ -202,6 +318,9 @@ class AudioManager {
             await this.handleSignal(signal);
           }
         }
+        
+        // Also check for new peers periodically
+        await this.connectToPeers();
       } catch (error) {
         console.error('Error polling signals:', error);
       }
@@ -215,6 +334,12 @@ class AudioManager {
         track.enabled = !this.isMuted;
       });
     }
+    
+    // On unmute, try to enable audio playback (for iOS)
+    if (!this.isMuted) {
+      this.enableAudioPlayback();
+    }
+    
     console.log(`Audio ${this.isMuted ? 'muted' : 'unmuted'}`);
     return this.isMuted;
   }
@@ -236,18 +361,30 @@ class AudioManager {
       if (pc) {
         pc.close();
       }
-      // Remove audio elements
-      const audioElement = document.getElementById(`audio-${peerId}`);
-      if (audioElement) {
-        audioElement.remove();
-      }
     }
     this.peerConnections = {};
+
+    // Remove all audio elements
+    for (const peerId of Object.keys(this.audioElements)) {
+      const audio = this.audioElements[peerId];
+      if (audio) {
+        audio.pause();
+        audio.srcObject = null;
+        audio.remove();
+      }
+    }
+    this.audioElements = {};
 
     // Stop local stream
     if (this.localStream) {
       this.localStream.getTracks().forEach(track => track.stop());
       this.localStream = null;
+    }
+
+    // Close AudioContext
+    if (this.audioContext) {
+      await this.audioContext.close();
+      this.audioContext = null;
     }
 
     this.isInitialized = false;
