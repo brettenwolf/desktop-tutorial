@@ -163,12 +163,33 @@ class AudioManager {
 
   async createPeerConnection(peerId) {
     try {
+      // Use multiple STUN/TURN servers for better connectivity
+      // Note: For production, you should use your own TURN server
       const config = {
         iceServers: [
           { urls: 'stun:stun.l.google.com:19302' },
           { urls: 'stun:stun1.l.google.com:19302' },
           { urls: 'stun:stun2.l.google.com:19302' },
+          { urls: 'stun:stun3.l.google.com:19302' },
+          { urls: 'stun:stun4.l.google.com:19302' },
+          // Free TURN server for testing (metered.ca)
+          {
+            urls: 'turn:a.relay.metered.ca:80',
+            username: 'e8dd65c92f6b4b6e3f5a5c1a',
+            credential: 'kHdHl5wy0/ey3P8y',
+          },
+          {
+            urls: 'turn:a.relay.metered.ca:443',
+            username: 'e8dd65c92f6b4b6e3f5a5c1a',
+            credential: 'kHdHl5wy0/ey3P8y',
+          },
+          {
+            urls: 'turn:a.relay.metered.ca:443?transport=tcp',
+            username: 'e8dd65c92f6b4b6e3f5a5c1a',
+            credential: 'kHdHl5wy0/ey3P8y',
+          },
         ],
+        iceCandidatePoolSize: 10,
       };
 
       const pc = new RTCPeerConnection(config);
