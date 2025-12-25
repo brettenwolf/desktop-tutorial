@@ -210,13 +210,14 @@ class AudioManager {
       // Add local tracks
       if (this.localStream) {
         this.localStream.getTracks().forEach(track => {
+          console.log(`Adding local track to peer ${peerId}: ${track.kind}, enabled: ${track.enabled}`);
           pc.addTrack(track, this.localStream);
         });
       }
 
       // Handle incoming tracks
       pc.ontrack = (event) => {
-        console.log(`Received remote track from ${peerId}`);
+        console.log(`✓ Received remote track from ${peerId}:`, event.track.kind);
         if (event.streams && event.streams[0]) {
           this.createAudioElement(peerId, event.streams[0]);
         }
@@ -232,21 +233,30 @@ class AudioManager {
       // Connection state logging
       pc.onconnectionstatechange = () => {
         console.log(`Peer ${peerId} connection state: ${pc.connectionState}`);
+        if (pc.connectionState === 'connected') {
+          console.log(`✓✓✓ Successfully connected to peer ${peerId}!`);
+        }
       };
 
       pc.oniceconnectionstatechange = () => {
         console.log(`Peer ${peerId} ICE state: ${pc.iceConnectionState}`);
+        if (pc.iceConnectionState === 'failed') {
+          console.log(`✗ ICE connection failed for peer ${peerId}`);
+        }
       };
 
-      // Create and send offer
-      const offer = await pc.createOffer({
-        offerToReceiveAudio: true,
-        offerToReceiveVideo: false,
-      });
-      await pc.setLocalDescription(offer);
-      await this.sendSignal(peerId, 'offer', { sdp: offer });
+      // Only create offer if we are the initiator
+      if (isInitiator) {
+        const offer = await pc.createOffer({
+          offerToReceiveAudio: true,
+          offerToReceiveVideo: false,
+        });
+        await pc.setLocalDescription(offer);
+        await this.sendSignal(peerId, 'offer', { sdp: offer });
+        console.log(`Sent offer to ${peerId}`);
+      }
 
-      console.log(`Created peer connection to ${peerId}`);
+      console.log(`Created peer connection to ${peerId} (initiator: ${isInitiator})`);
     } catch (error) {
       console.error(`Error creating peer connection to ${peerId}:`, error);
     }
@@ -257,6 +267,7 @@ class AudioManager {
 
     try {
       if (type === 'offer') {
+        console.log(`Received offer from ${from}`);
         // Handle incoming offer
         let pc = this.peerConnections[from];
         if (!pc) {
