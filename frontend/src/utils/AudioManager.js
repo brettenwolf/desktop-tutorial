@@ -268,9 +268,11 @@ class AudioManager {
     try {
       if (type === 'offer') {
         console.log(`Received offer from ${from}`);
-        // Handle incoming offer
+        // Handle incoming offer - create peer connection if needed
         let pc = this.peerConnections[from];
-        if (!pc) {
+        
+        // If we have a 'waiting' placeholder or no connection, create one
+        if (!pc || pc === 'waiting') {
           const config = {
             iceServers: [
               { urls: 'stun:stun.l.google.com:19302' },
@@ -286,6 +288,11 @@ class AudioManager {
                 username: 'e8dd65c92f6b4b6e3f5a5c1a',
                 credential: 'kHdHl5wy0/ey3P8y',
               },
+              {
+                urls: 'turn:a.relay.metered.ca:443?transport=tcp',
+                username: 'e8dd65c92f6b4b6e3f5a5c1a',
+                credential: 'kHdHl5wy0/ey3P8y',
+              },
             ],
             iceCandidatePoolSize: 10,
           };
@@ -295,12 +302,13 @@ class AudioManager {
 
           if (this.localStream) {
             this.localStream.getTracks().forEach(track => {
+              console.log(`Adding local track for answer to ${from}: ${track.kind}`);
               pc.addTrack(track, this.localStream);
             });
           }
 
           pc.ontrack = (event) => {
-            console.log(`Received remote track from ${from} (via offer)`);
+            console.log(`✓ Received remote track from ${from} (via offer):`, event.track.kind);
             if (event.streams && event.streams[0]) {
               this.createAudioElement(from, event.streams[0]);
             }
@@ -314,6 +322,13 @@ class AudioManager {
 
           pc.onconnectionstatechange = () => {
             console.log(`Peer ${from} connection state: ${pc.connectionState}`);
+            if (pc.connectionState === 'connected') {
+              console.log(`✓✓✓ Successfully connected to peer ${from}!`);
+            }
+          };
+          
+          pc.oniceconnectionstatechange = () => {
+            console.log(`Peer ${from} ICE state: ${pc.iceConnectionState}`);
           };
         }
 
@@ -321,22 +336,26 @@ class AudioManager {
         const answer = await pc.createAnswer();
         await pc.setLocalDescription(answer);
         await this.sendSignal(from, 'answer', { sdp: answer });
+        console.log(`Sent answer to ${from}`);
 
       } else if (type === 'answer') {
+        console.log(`Received answer from ${from}`);
         const pc = this.peerConnections[from];
-        if (pc && pc.signalingState !== 'stable') {
+        if (pc && pc !== 'waiting' && pc.signalingState !== 'stable') {
           await pc.setRemoteDescription(new RTCSessionDescription(data.sdp));
+          console.log(`Set remote description from answer by ${from}`);
         }
 
       } else if (type === 'ice-candidate') {
         const pc = this.peerConnections[from];
-        if (pc && data.candidate) {
+        if (pc && pc !== 'waiting' && data.candidate) {
           try {
             await pc.addIceCandidate(new RTCIceCandidate(data.candidate));
           } catch (e) {
             // Ignore ICE candidate errors if connection is already established
             if (pc.iceConnectionState !== 'connected' && pc.iceConnectionState !== 'completed') {
               console.error(`Error adding ICE candidate from ${from}:`, e);
+            }
             }
           }
         }
