@@ -169,11 +169,17 @@ const HomePage = () => {
     }
   };
 
-  // Toggle mute
-  const toggleMute = () => {
+  // Toggle mute - also enables audio playback on iOS when unmuting
+  const toggleMute = async () => {
     if (audioManager.current) {
       const newMutedState = audioManager.current.toggleMute();
       setIsMuted(newMutedState);
+      
+      // On iOS, clicking Unmute is a user gesture that allows audio playback
+      if (!newMutedState && audioManager.current.enableAudioPlayback) {
+        await audioManager.current.enableAudioPlayback();
+      }
+      
       console.log(`User manually ${newMutedState ? 'muted' : 'unmuted'}`);
     } else {
       // Toggle visual state even if audio not available
