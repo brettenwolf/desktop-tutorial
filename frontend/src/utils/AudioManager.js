@@ -173,7 +173,7 @@ class AudioManager {
     }
   }
 
-  async createPeerConnection(peerId) {
+  async createPeerConnection(peerId, isInitiator = false) {
     try {
       // Use multiple STUN/TURN servers for better connectivity
       // Note: For production, you should use your own TURN server
