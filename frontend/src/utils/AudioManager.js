@@ -95,6 +95,7 @@ class AudioManager {
     // Remove existing audio element if any
     const existingAudio = document.getElementById(`audio-${peerId}`);
     if (existingAudio) {
+      existingAudio.srcObject = null;
       existingAudio.remove();
     }
 
@@ -103,31 +104,33 @@ class AudioManager {
     audio.srcObject = stream;
     audio.setAttribute('playsinline', 'true'); // Required for iOS
     audio.setAttribute('autoplay', 'true');
+    audio.volume = 1.0; // Max volume
     
-    // iOS requires muted for autoplay, then we unmute
-    if (this.isIOS) {
-      audio.muted = true;
-    }
+    // For iOS, we need to handle autoplay differently
+    // Don't mute initially on iOS - let the play() handle it
     
-    // Add to DOM (hidden)
-    audio.style.display = 'none';
+    // Add to DOM (hidden but present)
+    audio.style.cssText = 'position: absolute; left: -9999px;';
     document.body.appendChild(audio);
     
     // Store reference
     this.audioElements[peerId] = audio;
 
-    // Play with iOS handling
-    const playPromise = audio.play();
-    if (playPromise !== undefined) {
-      playPromise
-        .then(() => {
-          console.log(`Audio playing for peer ${peerId}`);
-          // Unmute after play starts on iOS
-          if (this.isIOS) {
-            setTimeout(() => {
-              audio.muted = false;
-            }, 100);
-          }
+    console.log(`Creating audio element for peer ${peerId}, stream tracks:`, stream.getTracks().map(t => `${t.kind}:${t.enabled}`));
+
+    // Play with better error handling
+    const playAudio = async () => {
+      try {
+        await audio.play();
+        console.log(`✓ Audio playing for peer ${peerId}`);
+      } catch (error) {
+        console.log(`Audio play blocked for ${peerId}:`, error.message);
+        // Mark as needing user interaction
+        audio.dataset.needsPlay = 'true';
+      }
+    };
+    
+    playAudio();
         })
         .catch(error => {
           console.log(`Audio autoplay prevented for ${peerId}, waiting for user interaction:`, error);
