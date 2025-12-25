@@ -131,34 +131,34 @@ class AudioManager {
     };
     
     playAudio();
-        })
-        .catch(error => {
-          console.log(`Audio autoplay prevented for ${peerId}, waiting for user interaction:`, error);
-          // Store for later play on user interaction
-          this.pendingAudioPlay = audio;
-        });
-    }
 
     return audio;
   }
 
   // Call this on user interaction (like clicking Unmute) to enable audio on iOS
   async enableAudioPlayback() {
+    console.log('enableAudioPlayback called - attempting to play all audio elements');
+    
     // Resume AudioContext if suspended
     if (this.audioContext && this.audioContext.state === 'suspended') {
       await this.audioContext.resume();
+      console.log('AudioContext resumed');
     }
 
     // Try to play any pending audio
     for (const peerId of Object.keys(this.audioElements)) {
       const audio = this.audioElements[peerId];
-      if (audio && audio.paused) {
+      if (audio) {
         try {
-          await audio.play();
           audio.muted = false;
-          console.log(`Enabled audio playback for ${peerId}`);
+          audio.volume = 1.0;
+          if (audio.paused || audio.dataset.needsPlay === 'true') {
+            await audio.play();
+            audio.dataset.needsPlay = 'false';
+            console.log(`✓ Enabled audio playback for ${peerId}`);
+          }
         } catch (e) {
-          console.log(`Still cannot play audio for ${peerId}:`, e);
+          console.log(`Cannot play audio for ${peerId}:`, e.message);
         }
       }
     }
