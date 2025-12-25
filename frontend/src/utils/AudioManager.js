@@ -252,7 +252,19 @@ class AudioManager {
             iceServers: [
               { urls: 'stun:stun.l.google.com:19302' },
               { urls: 'stun:stun1.l.google.com:19302' },
+              // Free TURN server for testing
+              {
+                urls: 'turn:a.relay.metered.ca:80',
+                username: 'e8dd65c92f6b4b6e3f5a5c1a',
+                credential: 'kHdHl5wy0/ey3P8y',
+              },
+              {
+                urls: 'turn:a.relay.metered.ca:443',
+                username: 'e8dd65c92f6b4b6e3f5a5c1a',
+                credential: 'kHdHl5wy0/ey3P8y',
+              },
             ],
+            iceCandidatePoolSize: 10,
           };
           
           pc = new RTCPeerConnection(config);
