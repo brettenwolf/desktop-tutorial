@@ -82,7 +82,16 @@ class AudioManager {
 
         for (const peer of peers) {
           if (peer.sessionId !== this.sessionId && !this.peerConnections[peer.sessionId]) {
-            await this.createPeerConnection(peer.sessionId);
+            // Only initiate connection if our sessionId is "lower" to avoid glare
+            // The peer with the higher sessionId will wait for an offer
+            if (this.sessionId < peer.sessionId) {
+              console.log(`Initiating connection to ${peer.sessionId} (we are initiator)`);
+              await this.createPeerConnection(peer.sessionId, true);
+            } else {
+              console.log(`Waiting for connection from ${peer.sessionId} (they are initiator)`);
+              // Create a placeholder so we don't try again
+              this.peerConnections[peer.sessionId] = 'waiting';
+            }
           }
         }
       }
