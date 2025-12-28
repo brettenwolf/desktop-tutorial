@@ -252,11 +252,18 @@ class AudioManager {
         }
       };
 
-      // Connection state logging
+      // Connection state logging and status reporting
       pc.onconnectionstatechange = () => {
         console.log(`Peer ${peerId} connection state: ${pc.connectionState}`);
         if (pc.connectionState === 'connected') {
           console.log(`✓✓✓ Successfully connected to peer ${peerId}!`);
+          this.updateConnectedPeerCount();
+          this.reportStatus('connected', this.connectedPeerCount);
+        } else if (pc.connectionState === 'disconnected' || pc.connectionState === 'failed') {
+          this.updateConnectedPeerCount();
+          if (this.connectedPeerCount === 0) {
+            this.reportStatus('ready', 0);
+          }
         }
       };
 
@@ -264,6 +271,7 @@ class AudioManager {
         console.log(`Peer ${peerId} ICE state: ${pc.iceConnectionState}`);
         if (pc.iceConnectionState === 'failed') {
           console.log(`✗ ICE connection failed for peer ${peerId}`);
+          this.reportStatus('ice_failed');
         }
       };
 
