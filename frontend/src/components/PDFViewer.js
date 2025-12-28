@@ -1,11 +1,12 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { ZoomIn, ZoomOut, RotateCw, Loader2 } from 'lucide-react';
+import { ZoomIn, ZoomOut, RotateCw, Loader2, Maximize2, Minimize2 } from 'lucide-react';
 
 const PDFViewer = ({ backendUrl }) => {
   const [pageCount, setPageCount] = useState(0);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [scale, setScale] = useState(1);
+  const [fitMode, setFitMode] = useState('width'); // 'width', 'page', or 'custom'
   const [loadedPages, setLoadedPages] = useState([]);
   const [loadingPages, setLoadingPages] = useState(new Set());
   const containerRef = useRef(null);
