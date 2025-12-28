@@ -896,33 +896,23 @@ const HomePage = () => {
               </div>
             </div>
           )}
-        
-        {/* Placeholder for non-audio users */}
-        {!audioInitialized && (
-          <div className="text-sm text-white/50">
-            {/* Empty space to maintain header balance */}
-          </div>
-        )}
-        
-        <div className="w-32">
-          {/* Empty space to balance header */}
         </div>
       </div>
 
-      {/* Fixed Queue Status Panel */}
-      <div className="flex-shrink-0 bg-white/5 border-b border-white/20 p-4 z-10">
+      {/* Fixed Queue Status Panel - Mobile Responsive */}
+      <div className="flex-shrink-0 bg-white/5 border-b border-white/20 p-2 sm:p-4 z-10">
         <div className="max-w-4xl mx-auto">
           {/* Status Message */}
           {statusMessage && (
-            <div className="bg-yellow-500/20 border border-yellow-500/30 rounded-lg p-3 mb-4 text-center">
-              <p className="text-yellow-400 font-medium">{statusMessage}</p>
+            <div className="bg-yellow-500/20 border border-yellow-500/30 rounded-lg p-2 sm:p-3 mb-2 sm:mb-4 text-center">
+              <p className="text-yellow-400 font-medium text-sm sm:text-base">{statusMessage}</p>
             </div>
           )}
           
-          <div className="flex flex-wrap items-center justify-between gap-4">
+          <div className="flex flex-wrap items-center justify-between gap-2 sm:gap-4">
             {/* Position Info */}
-            <div className="flex items-center gap-6">
-              <div className={`text-center px-4 py-2 rounded-lg ${queueStatus?.isPosition1 ? 'bg-green-500/20 ring-2 ring-green-500' : queueStatus?.isPosition2 ? 'bg-yellow-500/20 ring-2 ring-yellow-500' : 'bg-white/10'}`}>
+            <div className="flex items-center gap-2 sm:gap-6">
+              <div className={`text-center px-2 sm:px-4 py-1 sm:py-2 rounded-lg ${queueStatus?.isPosition1 ? 'bg-green-500/20 ring-2 ring-green-500' : queueStatus?.isPosition2 ? 'bg-yellow-500/20 ring-2 ring-yellow-500' : 'bg-white/10'}`}>
                 <p className="text-xs text-white/70 uppercase">Your Position</p>
                 <p className={`text-3xl font-bold ${queueStatus?.isPosition1 ? 'text-green-400' : queueStatus?.isPosition2 ? 'text-yellow-400' : ''}`}>
                   {queueStatus?.position || '-'}
