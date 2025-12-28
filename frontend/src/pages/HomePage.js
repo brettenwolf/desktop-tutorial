@@ -962,38 +962,39 @@ const HomePage = () => {
                     </button>
                     <button
                       onClick={() => handleAction('skip')}
-                      className="btn-secondary flex items-center gap-2"
+                      className="btn-secondary flex items-center gap-1 sm:gap-2 text-sm sm:text-base px-2 sm:px-4 py-1.5 sm:py-2"
                       data-testid="skip-btn"
                     >
-                      <SkipForward size={20} />
+                      <SkipForward size={16} className="sm:w-5 sm:h-5" />
                       Skip
                     </button>
                     <button
                       onClick={leaveQueue}
-                      className="btn-danger flex items-center gap-2"
+                      className="btn-danger flex items-center gap-1 sm:gap-2 text-sm sm:text-base px-2 sm:px-4 py-1.5 sm:py-2"
                       data-testid="leave-queue-btn"
                     >
-                      <LogOut size={18} />
-                      Leave Queue
+                      <LogOut size={14} className="sm:w-[18px] sm:h-[18px]" />
+                      <span className="hidden sm:inline">Leave</span>
                     </button>
                   </>
                 ) : (
                   <>
                     <button
                       onClick={() => handleAction('finish')}
-                      className="btn-primary flex items-center gap-2"
+                      className="btn-primary flex items-center gap-1 sm:gap-2 text-sm sm:text-base px-2 sm:px-4 py-1.5 sm:py-2"
                       data-testid="finish-btn"
                     >
-                      <Check size={20} />
-                      Finish Reading
+                      <Check size={16} className="sm:w-5 sm:h-5" />
+                      <span className="hidden sm:inline">Finish Reading</span>
+                      <span className="sm:hidden">Finish</span>
                     </button>
                     <button
                       onClick={leaveQueue}
-                      className="btn-danger flex items-center gap-2"
+                      className="btn-danger flex items-center gap-1 sm:gap-2 text-sm sm:text-base px-2 sm:px-4 py-1.5 sm:py-2"
                       data-testid="leave-queue-btn"
                     >
-                      <LogOut size={18} />
-                      Leave Queue
+                      <LogOut size={14} className="sm:w-[18px] sm:h-[18px]" />
+                      <span className="hidden sm:inline">Leave</span>
                     </button>
                   </>
                 )}
@@ -1002,18 +1003,18 @@ const HomePage = () => {
 
             {/* Position 2 Info (no timer - timer only shows when advancing to Position 1) */}
             {queueStatus?.isPosition2 && (
-              <div className="flex items-center gap-4">
+              <div className="flex items-center gap-2 sm:gap-4">
                 <div className="text-right">
-                  <p className="text-yellow-400 font-semibold">You&apos;re next!</p>
-                  <p className="text-sm text-white/70">Be ready to start reading</p>
+                  <p className="text-yellow-400 font-semibold text-sm sm:text-base">You&apos;re next!</p>
+                  <p className="text-xs sm:text-sm text-white/70">Be ready</p>
                 </div>
                 <button
                   onClick={leaveQueue}
-                  className="btn-danger flex items-center gap-2"
+                  className="btn-danger flex items-center gap-1 sm:gap-2 text-sm sm:text-base px-2 sm:px-4 py-1.5 sm:py-2"
                   data-testid="leave-queue-btn"
                 >
-                  <LogOut size={18} />
-                  Leave Queue
+                  <LogOut size={14} className="sm:w-[18px] sm:h-[18px]" />
+                  <span className="hidden sm:inline">Leave</span>
                 </button>
               </div>
             )}
