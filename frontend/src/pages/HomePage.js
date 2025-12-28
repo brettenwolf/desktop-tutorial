@@ -837,60 +837,59 @@ const HomePage = () => {
     <div className="h-screen flex flex-col overflow-hidden">
       {/* Fixed Header - Mobile Responsive */}
       <div className="flex-shrink-0 bg-white/10 backdrop-blur-md p-2 sm:p-4 border-b border-white/20 z-10">
-        {/* Header with centered audio controls */}
-        <div className="flex items-center justify-between">
-          {/* Left: Logo */}
-          <div className="flex items-center gap-2 sm:gap-4 flex-shrink-0">
+        {/* Header with audio controls centered in right 2/3 */}
+        <div className="flex items-center">
+          {/* Left 1/3: Logo */}
+          <div className="flex items-center gap-2 sm:gap-4 w-1/3 flex-shrink-0">
             <div className="text-xl sm:text-2xl">📖</div>
-            <div>
-              <h1 className="font-bold text-sm sm:text-base">ReadQueue</h1>
-              <p className="text-xs sm:text-sm text-white/70">
+            <div className="min-w-0">
+              <h1 className="font-bold text-sm sm:text-base truncate">ReadQueue</h1>
+              <p className="text-xs sm:text-sm text-white/70 truncate">
                 <span className="font-bold text-white">Group: </span>
                 {queueStatus?.subGroup || selectedSubGroup}
               </p>
             </div>
           </div>
           
-          {/* Center: Audio Controls */}
-          {audioInitialized && (
-            <div className="flex items-center gap-1 sm:gap-2 absolute left-1/2 transform -translate-x-1/2">
-              {/* Mute Button */}
-              <button
-                onClick={() => { if (!isMuted) toggleMute(); }}
-                className={`px-3 sm:px-4 py-1.5 sm:py-2 rounded-lg text-xs sm:text-sm font-medium transition-all ${
-                  isMuted 
-                    ? 'bg-red-500 text-white ring-2 ring-red-400' 
-                    : 'bg-white/10 text-white/70 hover:bg-white/20'
-                }`}
-              >
-                Mute
-              </button>
-              
-              {/* Mic Icon - Shows current state */}
-              <div className={`p-1.5 sm:p-2 rounded-full ${isMuted ? 'bg-red-500/20' : 'bg-green-500/20'}`}>
-                {isMuted ? (
-                  <MicOff size={18} className="text-red-400 sm:w-6 sm:h-6" />
-                ) : (
-                  <Mic size={18} className="text-green-400 sm:w-6 sm:h-6" />
-                )}
+          {/* Right 2/3: Audio Controls centered */}
+          <div className="w-2/3 flex justify-center">
+            {audioInitialized && (
+              <div className="flex items-center gap-1 sm:gap-2">
+                {/* Mute Button */}
+                <button
+                  onClick={() => { if (!isMuted) toggleMute(); }}
+                  className={`px-3 sm:px-4 py-1.5 sm:py-2 rounded-lg text-xs sm:text-sm font-medium transition-all ${
+                    isMuted 
+                      ? 'bg-red-500 text-white ring-2 ring-red-400' 
+                      : 'bg-white/10 text-white/70 hover:bg-white/20'
+                  }`}
+                >
+                  Mute
+                </button>
+                
+                {/* Mic Icon - Shows current state */}
+                <div className={`p-1.5 sm:p-2 rounded-full ${isMuted ? 'bg-red-500/20' : 'bg-green-500/20'}`}>
+                  {isMuted ? (
+                    <MicOff size={18} className="text-red-400 sm:w-6 sm:h-6" />
+                  ) : (
+                    <Mic size={18} className="text-green-400 sm:w-6 sm:h-6" />
+                  )}
+                </div>
+                
+                {/* Unmute Button */}
+                <button
+                  onClick={() => { if (isMuted) toggleMute(); }}
+                  className={`px-3 sm:px-4 py-1.5 sm:py-2 rounded-lg text-xs sm:text-sm font-medium transition-all ${
+                    !isMuted 
+                      ? 'bg-green-500 text-white ring-2 ring-green-400' 
+                      : 'bg-white/10 text-white/70 hover:bg-white/20'
+                  }`}
+                >
+                  Unmute
+                </button>
               </div>
-              
-              {/* Unmute Button */}
-              <button
-                onClick={() => { if (isMuted) toggleMute(); }}
-                className={`px-3 sm:px-4 py-1.5 sm:py-2 rounded-lg text-xs sm:text-sm font-medium transition-all ${
-                  !isMuted 
-                    ? 'bg-green-500 text-white ring-2 ring-green-400' 
-                    : 'bg-white/10 text-white/70 hover:bg-white/20'
-                }`}
-              >
-                Unmute
-              </button>
-            </div>
-          )}
-          
-          {/* Right: Empty space for balance */}
-          <div className="w-16 sm:w-24 flex-shrink-0"></div>
+            )}
+          </div>
         </div>
       </div>
 
