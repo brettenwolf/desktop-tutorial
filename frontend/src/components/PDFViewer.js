@@ -143,47 +143,60 @@ const PDFViewer = ({ backendUrl }) => {
   return (
     <div className="flex flex-col h-full">
       {/* Controls */}
-      <div className="bg-white/10 backdrop-blur-md p-3 flex items-center justify-between border-b border-white/20">
+      <div className="bg-white/10 backdrop-blur-md p-2 sm:p-3 flex items-center justify-between border-b border-white/20">
         {/* Page Info */}
-        <div className="flex items-center gap-4">
-          <span className="text-sm">
+        <div className="flex items-center gap-2 sm:gap-4">
+          <span className="text-xs sm:text-sm">
             {loadedCount < pageCount ? (
               <span className="flex items-center gap-2">
                 <Loader2 size={14} className="animate-spin" />
-                Loading pages... ({loadedCount}/{pageCount})
+                <span className="hidden sm:inline">Loading pages...</span> ({loadedCount}/{pageCount})
               </span>
             ) : (
-              `${pageCount} pages • Scroll to view`
+              <span>
+                <span className="hidden sm:inline">{pageCount} pages • Scroll to view</span>
+                <span className="sm:hidden">{pageCount} pg</span>
+              </span>
             )}
           </span>
         </div>
 
         {/* Zoom Controls */}
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-1 sm:gap-2">
           <button
             onClick={zoomOut}
-            disabled={scale <= 0.5}
-            className="p-2 rounded-lg hover:bg-white/10 disabled:opacity-30 disabled:cursor-not-allowed transition-all"
+            disabled={scale <= 0.25}
+            className="p-1.5 sm:p-2 rounded-lg hover:bg-white/10 disabled:opacity-30 disabled:cursor-not-allowed transition-all"
             data-testid="zoom-out-btn"
+            title="Zoom out"
           >
-            <ZoomOut size={20} />
+            <ZoomOut size={18} />
           </button>
-          <span className="text-sm w-16 text-center">{Math.round(scale * 100)}%</span>
+          <span className="text-xs sm:text-sm w-12 sm:w-16 text-center">{Math.round(scale * 100)}%</span>
           <button
             onClick={zoomIn}
             disabled={scale >= 3}
-            className="p-2 rounded-lg hover:bg-white/10 disabled:opacity-30 disabled:cursor-not-allowed transition-all"
+            className="p-1.5 sm:p-2 rounded-lg hover:bg-white/10 disabled:opacity-30 disabled:cursor-not-allowed transition-all"
             data-testid="zoom-in-btn"
+            title="Zoom in"
           >
-            <ZoomIn size={20} />
+            <ZoomIn size={18} />
+          </button>
+          <button
+            onClick={toggleFitMode}
+            className="p-1.5 sm:p-2 rounded-lg hover:bg-white/10 transition-all"
+            title={fitMode === 'width' ? 'Fit page' : 'Fit width'}
+            data-testid="fit-mode-btn"
+          >
+            {fitMode === 'width' ? <Minimize2 size={18} /> : <Maximize2 size={18} />}
           </button>
           <button
             onClick={resetZoom}
-            className="p-2 rounded-lg hover:bg-white/10 transition-all"
+            className="p-1.5 sm:p-2 rounded-lg hover:bg-white/10 transition-all"
             title="Reset zoom"
             data-testid="reset-zoom-btn"
           >
-            <RotateCw size={20} />
+            <RotateCw size={18} />
           </button>
         </div>
       </div>
@@ -191,16 +204,18 @@ const PDFViewer = ({ backendUrl }) => {
       {/* Scrollable PDF Content */}
       <div 
         ref={containerRef}
-        className="flex-1 overflow-auto bg-gray-900 p-4"
+        className="flex-1 overflow-auto bg-gray-900 p-2 sm:p-4"
       >
         <div 
-          className="flex flex-col items-center gap-4"
-          style={{ transform: `scale(${scale})`, transformOrigin: 'top center' }}
+          className="flex flex-col items-center gap-4 mx-auto"
+          style={{ 
+            maxWidth: fitMode === 'width' ? '100%' : `${scale * 800}px`,
+          }}
         >
           {loadedPages.map((pageUrl, index) => (
-            <div key={index} className="relative">
+            <div key={index} className="relative w-full">
               {/* Page number label */}
-              <div className="absolute -top-2 left-1/2 transform -translate-x-1/2 -translate-y-full bg-white/20 px-3 py-1 rounded-t-lg text-xs text-white/70">
+              <div className="absolute -top-2 left-1/2 transform -translate-x-1/2 -translate-y-full bg-white/20 px-2 sm:px-3 py-0.5 sm:py-1 rounded-t-lg text-xs text-white/70 z-10">
                 Page {index + 1}
               </div>
               
@@ -208,12 +223,19 @@ const PDFViewer = ({ backendUrl }) => {
                 <img
                   src={pageUrl}
                   alt={`Page ${index + 1}`}
-                  className="max-w-full shadow-2xl rounded-lg"
+                  className="shadow-2xl rounded-lg mx-auto"
+                  style={{
+                    width: fitMode === 'width' ? '100%' : 'auto',
+                    maxWidth: fitMode === 'width' ? '800px' : `${scale * 800}px`,
+                    height: 'auto',
+                    transform: fitMode === 'custom' ? `scale(${scale})` : 'none',
+                    transformOrigin: 'top center',
+                  }}
                   draggable={false}
                   data-testid={`pdf-page-${index}`}
                 />
               ) : (
-                <div className="w-[600px] h-[800px] bg-white/5 rounded-lg flex items-center justify-center">
+                <div className="w-full max-w-[800px] aspect-[3/4] bg-white/5 rounded-lg flex items-center justify-center mx-auto">
                   <Loader2 size={32} className="animate-spin text-blue-500" />
                 </div>
               )}
