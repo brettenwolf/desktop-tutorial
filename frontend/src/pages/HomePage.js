@@ -844,7 +844,10 @@ const HomePage = () => {
             <div className="text-xl sm:text-2xl">📖</div>
             <div>
               <h1 className="font-bold text-sm sm:text-base">ReadQueue</h1>
-              <p className="text-xs sm:text-sm text-white/70">{queueStatus?.subGroup || selectedSubGroup}</p>
+              <p className="text-xs sm:text-sm text-white/70">
+                <span className="font-bold text-white">Group: </span>
+                {queueStatus?.subGroup || selectedSubGroup}
+              </p>
             </div>
           </div>
           
