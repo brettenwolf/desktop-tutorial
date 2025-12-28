@@ -195,6 +195,19 @@ class AudioManager {
     }
   }
 
+  // Count currently connected peers
+  updateConnectedPeerCount() {
+    let count = 0;
+    for (const peerId of Object.keys(this.peerConnections)) {
+      const pc = this.peerConnections[peerId];
+      if (pc && pc !== 'waiting' && pc.connectionState === 'connected') {
+        count++;
+      }
+    }
+    this.connectedPeerCount = count;
+    return count;
+  }
+
   async createPeerConnection(peerId, isInitiator = false) {
     try {
       // Use multiple STUN/TURN servers for better connectivity
