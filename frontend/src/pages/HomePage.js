@@ -837,9 +837,10 @@ const HomePage = () => {
     <div className="h-screen flex flex-col overflow-hidden">
       {/* Fixed Header - Mobile Responsive */}
       <div className="flex-shrink-0 bg-white/10 backdrop-blur-md p-2 sm:p-4 border-b border-white/20 z-10">
-        {/* Top row: Logo and Audio Controls */}
+        {/* Header with centered audio controls */}
         <div className="flex items-center justify-between">
-          <div className="flex items-center gap-2 sm:gap-4">
+          {/* Left: Logo */}
+          <div className="flex items-center gap-2 sm:gap-4 flex-shrink-0">
             <div className="text-xl sm:text-2xl">📖</div>
             <div>
               <h1 className="font-bold text-sm sm:text-base">ReadQueue</h1>
@@ -847,18 +848,13 @@ const HomePage = () => {
             </div>
           </div>
           
-          {/* Audio Controls - Compact for Mobile */}
+          {/* Center: Audio Controls */}
           {audioInitialized && (
-            <div className="flex items-center gap-1 sm:gap-2">
-              {/* Connection Status - Hidden on very small screens */}
-              <div className={`hidden sm:block px-2 py-1 rounded text-xs ${connectionStatus.bg} ${connectionStatus.color}`}>
-                {connectionStatus.text}
-              </div>
-              
-              {/* Mute Button - Shows text on all screen sizes */}
+            <div className="flex items-center gap-1 sm:gap-2 absolute left-1/2 transform -translate-x-1/2">
+              {/* Mute Button */}
               <button
                 onClick={() => { if (!isMuted) toggleMute(); }}
-                className={`px-2 sm:px-3 py-1.5 sm:py-2 rounded-lg text-xs sm:text-sm font-medium transition-all ${
+                className={`px-3 sm:px-4 py-1.5 sm:py-2 rounded-lg text-xs sm:text-sm font-medium transition-all ${
                   isMuted 
                     ? 'bg-red-500 text-white ring-2 ring-red-400' 
                     : 'bg-white/10 text-white/70 hover:bg-white/20'
@@ -876,10 +872,10 @@ const HomePage = () => {
                 )}
               </div>
               
-              {/* Unmute Button - Shows text on all screen sizes */}
+              {/* Unmute Button */}
               <button
                 onClick={() => { if (isMuted) toggleMute(); }}
-                className={`px-2 sm:px-3 py-1.5 sm:py-2 rounded-lg text-xs sm:text-sm font-medium transition-all ${
+                className={`px-3 sm:px-4 py-1.5 sm:py-2 rounded-lg text-xs sm:text-sm font-medium transition-all ${
                   !isMuted 
                     ? 'bg-green-500 text-white ring-2 ring-green-400' 
                     : 'bg-white/10 text-white/70 hover:bg-white/20'
@@ -889,6 +885,9 @@ const HomePage = () => {
               </button>
             </div>
           )}
+          
+          {/* Right: Empty space for balance */}
+          <div className="w-16 sm:w-24 flex-shrink-0"></div>
         </div>
       </div>
 
