@@ -153,6 +153,13 @@ const HomePage = () => {
     try {
       console.log(`Initializing audio for sub-group '${subGroup}' (startMuted: ${startMuted})...`);
       audioManager.current = new AudioManager(sid, subGroup, API);
+      
+      // Set up status callback
+      audioManager.current.setStatusCallback((status, peerCount) => {
+        setAudioConnectionStatus(status);
+        setConnectedPeers(peerCount);
+      });
+      
       const success = await audioManager.current.initialize(startMuted);
       
       if (success) {
@@ -170,6 +177,7 @@ const HomePage = () => {
       // Show controls even on error
       setAudioInitialized(true);
       setIsMuted(true);
+      setAudioConnectionStatus('error');
     }
   };
 
