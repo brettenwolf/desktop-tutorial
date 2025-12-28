@@ -1025,7 +1025,7 @@ const HomePage = () => {
                   data-testid="leave-queue-btn"
                 >
                   <LogOut size={14} className="sm:w-[18px] sm:h-[18px]" />
-                  <span className="hidden sm:inline">Leave</span>
+                  Leave
                 </button>
               </div>
             )}
