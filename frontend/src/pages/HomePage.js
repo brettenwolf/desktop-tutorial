@@ -855,20 +855,19 @@ const HomePage = () => {
                 {connectionStatus.text}
               </div>
               
-              {/* Mute Button */}
+              {/* Mute Button - Shows text on all screen sizes */}
               <button
                 onClick={() => { if (!isMuted) toggleMute(); }}
-                className={`px-2 sm:px-3 py-1.5 sm:py-2 rounded-lg text-xs sm:text-sm font-medium transition-all flex items-center gap-1 ${
+                className={`px-2 sm:px-3 py-1.5 sm:py-2 rounded-lg text-xs sm:text-sm font-medium transition-all ${
                   isMuted 
                     ? 'bg-red-500 text-white ring-2 ring-red-400' 
                     : 'bg-white/10 text-white/70 hover:bg-white/20'
                 }`}
               >
-                <MicOff size={14} />
-                <span className="hidden sm:inline">Muted</span>
+                Mute
               </button>
               
-              {/* Mic Icon - Smaller on mobile */}
+              {/* Mic Icon - Shows current state */}
               <div className={`p-1.5 sm:p-2 rounded-full ${isMuted ? 'bg-red-500/20' : 'bg-green-500/20'}`}>
                 {isMuted ? (
                   <MicOff size={18} className="text-red-400 sm:w-6 sm:h-6" />
@@ -877,23 +876,17 @@ const HomePage = () => {
                 )}
               </div>
               
-              {/* Unmute Button */}
+              {/* Unmute Button - Shows text on all screen sizes */}
               <button
                 onClick={() => { if (isMuted) toggleMute(); }}
-                className={`px-2 sm:px-3 py-1.5 sm:py-2 rounded-lg text-xs sm:text-sm font-medium transition-all flex items-center gap-1 ${
+                className={`px-2 sm:px-3 py-1.5 sm:py-2 rounded-lg text-xs sm:text-sm font-medium transition-all ${
                   !isMuted 
                     ? 'bg-green-500 text-white ring-2 ring-green-400' 
                     : 'bg-white/10 text-white/70 hover:bg-white/20'
                 }`}
               >
-                <Mic size={14} />
-                <span className="hidden sm:inline">Unmuted</span>
+                Unmute
               </button>
-              
-              {/* Mobile-only status indicator */}
-              <div className={`sm:hidden px-1.5 py-1 rounded text-xs ${connectionStatus.bg} ${connectionStatus.color}`}>
-                {connectedPeers > 0 ? `${connectedPeers}` : '•'}
-              </div>
             </div>
           )}
         </div>
