@@ -238,8 +238,6 @@ const AdminPage = () => {
 
   // Delete PDF from library
   const handleDeleteFile = async (filename, isRandom = false) => {
-    if (!window.confirm(`Delete "${filename}"?`)) return;
-
     const fileKey = `${isRandom ? 'random-' : ''}${filename}`;
     setDeletingFile(fileKey);
 
