@@ -1,7 +1,7 @@
 /**
  * AudioManager - WebRTC-based audio streaming for group reading
  * Handles peer-to-peer audio connections within sub-groups
- * iOS Safari compatible
+ * iOS Safari/Chrome compatible
  */
 class AudioManager {
   constructor(sessionId, subGroup, apiUrl) {
@@ -16,13 +16,32 @@ class AudioManager {
     this.pollingInterval = null;
     this.audioContext = null;
     this.isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent) && !window.MSStream;
+    this.onStatusChange = null; // Callback for status updates
+    this.connectedPeerCount = 0;
+  }
+
+  // Set callback for status changes
+  setStatusCallback(callback) {
+    this.onStatusChange = callback;
+  }
+
+  // Report status to UI
+  reportStatus(status, peerCount = this.connectedPeerCount) {
+    this.connectedPeerCount = peerCount;
+    if (this.onStatusChange) {
+      this.onStatusChange(status, peerCount);
+    }
+    console.log(`Audio Status: ${status}, Connected Peers: ${peerCount}`);
   }
 
   async initialize(startMuted = true) {
     try {
+      this.reportStatus('initializing');
+      
       // Check if WebRTC is supported
       if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
         console.log('WebRTC not supported in this browser');
+        this.reportStatus('unsupported');
         return false;
       }
 
