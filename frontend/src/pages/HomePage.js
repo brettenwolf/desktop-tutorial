@@ -34,6 +34,10 @@ const HomePage = () => {
   const [position2Timer, setPosition2Timer] = useState(POSITION_2_TIMER_DURATION);
   const [isPosition2TimerActive, setIsPosition2TimerActive] = useState(false);
   
+  // Audio connection status
+  const [audioConnectionStatus, setAudioConnectionStatus] = useState('initializing');
+  const [connectedPeers, setConnectedPeers] = useState(0);
+  
   // Sub-group state
   const [availableSubGroups, setAvailableSubGroups] = useState([]);
   const [selectedSubGroup, setSelectedSubGroup] = useState(null);
