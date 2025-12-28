@@ -65,11 +65,12 @@ class AudioManager {
         video: false,
       };
 
-      // iOS Safari sometimes needs simpler constraints
+      // iOS Safari/Chrome sometimes needs simpler constraints
       if (this.isIOS) {
         constraints.audio = true;
       }
 
+      this.reportStatus('requesting_mic');
       this.localStream = await navigator.mediaDevices.getUserMedia(constraints);
 
       // Set initial mute state
@@ -79,6 +80,7 @@ class AudioManager {
       });
 
       this.isInitialized = true;
+      this.reportStatus('ready');
 
       // Start polling for signals and peers
       this.startSignalPolling();
@@ -88,6 +90,7 @@ class AudioManager {
       return true;
     } catch (error) {
       console.error('Error initializing audio:', error);
+      this.reportStatus('mic_denied');
       return false;
     }
   }
