@@ -1021,15 +1021,18 @@ const HomePage = () => {
 
             {/* Other positions - show Leave Queue button */}
             {!queueStatus?.isPosition1 && !queueStatus?.isPosition2 && (
-              <div className="flex items-center gap-4">
-                <p className="text-sm text-white/70">Your name: <span className="text-white font-medium">{name}</span></p>
+              <div className="flex items-center gap-2 sm:gap-4">
+                <p className="text-xs sm:text-sm text-white/70">
+                  <span className="hidden sm:inline">Your name: </span>
+                  <span className="text-white font-medium">{name}</span>
+                </p>
                 <button
                   onClick={leaveQueue}
-                  className="btn-danger flex items-center gap-2"
+                  className="btn-danger flex items-center gap-1 sm:gap-2 text-sm sm:text-base px-2 sm:px-4 py-1.5 sm:py-2"
                   data-testid="leave-queue-btn"
                 >
-                  <LogOut size={18} />
-                  Leave Queue
+                  <LogOut size={14} className="sm:w-[18px] sm:h-[18px]" />
+                  <span className="hidden sm:inline">Leave</span>
                 </button>
               </div>
             )}
@@ -1042,12 +1045,12 @@ const HomePage = () => {
         {documentStatus.loaded && documentData ? (
           <PDFViewer backendUrl={BACKEND_URL} />
         ) : (
-          <div className="flex items-center justify-center h-full min-h-[400px]">
+          <div className="flex items-center justify-center h-full min-h-[200px] sm:min-h-[400px]">
             <div className="text-center">
               {uploadingDocument ? (
                 <>
-                  <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-blue-500 mx-auto mb-4"></div>
-                  <p className="text-white/70">Loading document...</p>
+                  <div className="animate-spin rounded-full h-8 w-8 sm:h-12 sm:w-12 border-t-2 border-b-2 border-blue-500 mx-auto mb-4"></div>
+                  <p className="text-white/70 text-sm sm:text-base">Loading document...</p>
                 </>
               ) : (
                 <>
