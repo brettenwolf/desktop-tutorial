@@ -837,10 +837,10 @@ const HomePage = () => {
     <div className="h-screen flex flex-col overflow-hidden">
       {/* Fixed Header - Mobile Responsive */}
       <div className="flex-shrink-0 bg-white/10 backdrop-blur-md p-2 sm:p-4 border-b border-white/20 z-10">
-        {/* Header with audio controls centered in right 2/3 */}
-        <div className="flex items-center">
-          {/* Left 1/3: Logo */}
-          <div className="flex items-center gap-2 sm:gap-4 w-1/3 flex-shrink-0">
+        {/* Mobile: 1/3 - 2/3 split | Desktop: fully centered */}
+        <div className="flex items-center sm:justify-between">
+          {/* Left: Logo - 1/3 on mobile, auto on desktop */}
+          <div className="flex items-center gap-2 sm:gap-4 w-1/3 sm:w-auto flex-shrink-0">
             <div className="text-xl sm:text-2xl">📖</div>
             <div className="min-w-0">
               <h1 className="font-bold text-sm sm:text-base truncate">ReadQueue</h1>
@@ -851,8 +851,8 @@ const HomePage = () => {
             </div>
           </div>
           
-          {/* Right 2/3: Audio Controls centered */}
-          <div className="w-2/3 flex justify-center">
+          {/* Audio Controls - Right 2/3 on mobile, centered on desktop */}
+          <div className="w-2/3 sm:w-auto sm:absolute sm:left-1/2 sm:transform sm:-translate-x-1/2 flex justify-center">
             {audioInitialized && (
               <div className="flex items-center gap-1 sm:gap-2">
                 {/* Mute Button */}
@@ -890,6 +890,9 @@ const HomePage = () => {
               </div>
             )}
           </div>
+          
+          {/* Right spacer - only on desktop for balance */}
+          <div className="hidden sm:block sm:w-24 flex-shrink-0"></div>
         </div>
       </div>
 
