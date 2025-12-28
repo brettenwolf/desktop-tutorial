@@ -810,6 +810,28 @@ const HomePage = () => {
     );
   }
 
+  // Helper to get connection status display
+  const getConnectionStatusDisplay = () => {
+    switch (audioConnectionStatus) {
+      case 'connected':
+        return { text: `${connectedPeers} peer${connectedPeers !== 1 ? 's' : ''}`, color: 'text-green-400', bg: 'bg-green-500/20' };
+      case 'ready':
+        return { text: 'Ready', color: 'text-yellow-400', bg: 'bg-yellow-500/20' };
+      case 'initializing':
+        return { text: 'Starting...', color: 'text-blue-400', bg: 'bg-blue-500/20' };
+      case 'requesting_mic':
+        return { text: 'Mic access...', color: 'text-blue-400', bg: 'bg-blue-500/20' };
+      case 'mic_denied':
+        return { text: 'Mic denied', color: 'text-red-400', bg: 'bg-red-500/20' };
+      case 'ice_failed':
+        return { text: 'Connection failed', color: 'text-red-400', bg: 'bg-red-500/20' };
+      default:
+        return { text: 'Offline', color: 'text-gray-400', bg: 'bg-gray-500/20' };
+    }
+  };
+
+  const connectionStatus = getConnectionStatusDisplay();
+
   // Render main queue view
   return (
     <div className="h-screen flex flex-col overflow-hidden">
@@ -825,7 +847,12 @@ const HomePage = () => {
         
         {/* Audio Controls - Center of Header */}
         {audioInitialized && (
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-3">
+            {/* Connection Status Indicator */}
+            <div className={`px-2 py-1 rounded text-xs ${connectionStatus.bg} ${connectionStatus.color}`}>
+              {connectionStatus.text}
+            </div>
+            
             <button
               onClick={() => { if (!isMuted) toggleMute(); }}
               className={`px-4 py-2 rounded-lg text-sm font-medium transition-all flex items-center gap-2 ${
