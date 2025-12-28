@@ -92,15 +92,28 @@ const PDFViewer = ({ backendUrl }) => {
   };
 
   const zoomIn = () => {
+    setFitMode('custom');
     setScale(Math.min(scale + 0.25, 3));
   };
 
   const zoomOut = () => {
-    setScale(Math.max(scale - 0.25, 0.5));
+    setFitMode('custom');
+    setScale(Math.max(scale - 0.25, 0.25));
   };
 
   const resetZoom = () => {
     setScale(1);
+    setFitMode('width');
+  };
+
+  const toggleFitMode = () => {
+    if (fitMode === 'width') {
+      setFitMode('page');
+      setScale(0.5);
+    } else {
+      setFitMode('width');
+      setScale(1);
+    }
   };
 
   if (loading) {
