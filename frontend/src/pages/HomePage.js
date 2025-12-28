@@ -919,9 +919,9 @@ const HomePage = () => {
                 </p>
               </div>
               
-              <div className="text-center px-4 py-2 rounded-lg bg-white/10">
-                <p className="text-xs text-white/70 uppercase">Total in Queue</p>
-                <p className="text-3xl font-bold">{queueStatus?.totalInQueue || 0}</p>
+              <div className="text-center px-2 sm:px-4 py-1 sm:py-2 rounded-lg bg-white/10">
+                <p className="text-xs text-white/70 uppercase">Total</p>
+                <p className="text-xl sm:text-3xl font-bold">{queueStatus?.totalInQueue || 0}</p>
               </div>
               
               <div className="hidden sm:block">
@@ -938,12 +938,12 @@ const HomePage = () => {
 
             {/* Action Buttons - Position 1 */}
             {queueStatus?.isPosition1 && (
-              <div className="flex items-center gap-3">
+              <div className="flex flex-wrap items-center gap-2 sm:gap-3">
                 {/* Timer for newly advanced Position 1 */}
                 {justBecamePosition1 && isPosition2TimerActive && !hasStartedReading && (
-                  <div className={`text-center px-4 py-2 rounded-lg ${position2Timer <= 5 ? 'bg-red-500/20' : 'bg-green-500/20'}`}>
-                    <p className="text-xs text-white/70 uppercase">Act Within</p>
-                    <p className={`text-2xl font-bold ${position2Timer <= 5 ? 'text-red-400' : 'text-green-400'}`}>
+                  <div className={`text-center px-2 sm:px-4 py-1 sm:py-2 rounded-lg ${position2Timer <= 5 ? 'bg-red-500/20' : 'bg-green-500/20'}`}>
+                    <p className="text-xs text-white/70 uppercase">Act</p>
+                    <p className={`text-lg sm:text-2xl font-bold ${position2Timer <= 5 ? 'text-red-400' : 'text-green-400'}`}>
                       {position2Timer}s
                     </p>
                   </div>
@@ -953,11 +953,12 @@ const HomePage = () => {
                   <>
                     <button
                       onClick={() => handleAction('start')}
-                      className="btn-success flex items-center gap-2"
+                      className="btn-success flex items-center gap-1 sm:gap-2 text-sm sm:text-base px-2 sm:px-4 py-1.5 sm:py-2"
                       data-testid="start-reading-btn"
                     >
-                      <Play size={20} />
-                      Start Reading
+                      <Play size={16} className="sm:w-5 sm:h-5" />
+                      <span className="hidden sm:inline">Start Reading</span>
+                      <span className="sm:hidden">Start</span>
                     </button>
                     <button
                       onClick={() => handleAction('skip')}
