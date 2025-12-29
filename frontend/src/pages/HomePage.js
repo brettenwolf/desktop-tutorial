@@ -37,6 +37,7 @@ const HomePage = () => {
   // Audio connection status
   const [audioConnectionStatus, setAudioConnectionStatus] = useState('initializing');
   const [connectedPeers, setConnectedPeers] = useState(0);
+  const [audioWarning, setAudioWarning] = useState(null);
   
   // Sub-group state
   const [availableSubGroups, setAvailableSubGroups] = useState([]);
