@@ -113,7 +113,7 @@ async def set_random_pdf_cache(cache):
 
 async def check_and_perform_daily_reset():
     """Check if we need to perform a daily reset based on CST date"""
-    global last_reset_date, current_document, cache_version
+    global last_reset_date
     
     cst_time = datetime.utcnow() + timedelta(hours=TIMEZONE_OFFSET)
     today = cst_time.strftime("%Y-%m-%d")
@@ -121,18 +121,20 @@ async def check_and_perform_daily_reset():
     if last_reset_date != today:
         logger.info(f"Performing daily reset. Last reset: {last_reset_date}, Today: {today}")
         
-        # Clear document
-        current_document["data"] = None
-        current_document["filename"] = None
-        current_document["contentType"] = None
-        current_document["loaderSessionId"] = None
-        
-        cache_version += 1
+        # Clear document in MongoDB
+        await set_current_document(
+            data=None,
+            filename=None,
+            contentType=None,
+            loaderSessionId=None,
+            increment_cache=True
+        )
         
         # Clear all queues
         await db.queue.delete_many({})
         
         last_reset_date = today
+        random_pdf_cache = await get_random_pdf_cache()
         logger.info(f"Daily reset complete. Random PDF cache preserved: {list(random_pdf_cache.keys())}")
         return True
     return False
