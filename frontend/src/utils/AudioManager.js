@@ -211,29 +211,39 @@ class AudioManager {
   async createPeerConnection(peerId, isInitiator = false) {
     try {
       // Use multiple STUN/TURN servers for better connectivity
-      // Note: For production, you should use your own TURN server
       const config = {
         iceServers: [
+          // Google STUN servers
           { urls: 'stun:stun.l.google.com:19302' },
           { urls: 'stun:stun1.l.google.com:19302' },
           { urls: 'stun:stun2.l.google.com:19302' },
-          { urls: 'stun:stun3.l.google.com:19302' },
-          { urls: 'stun:stun4.l.google.com:19302' },
-          // Free TURN server for testing (metered.ca)
+          // Open Relay STUN
+          { urls: 'stun:staticauth.openrelay.metered.ca:80' },
+          // Open Relay TURN servers (free, working as of 2025)
           {
-            urls: 'turn:a.relay.metered.ca:80',
-            username: 'e8dd65c92f6b4b6e3f5a5c1a',
-            credential: 'kHdHl5wy0/ey3P8y',
+            urls: 'turn:staticauth.openrelay.metered.ca:80',
+            username: 'openrelayproject',
+            credential: 'openrelayprojectsecret',
           },
           {
-            urls: 'turn:a.relay.metered.ca:443',
-            username: 'e8dd65c92f6b4b6e3f5a5c1a',
-            credential: 'kHdHl5wy0/ey3P8y',
+            urls: 'turn:staticauth.openrelay.metered.ca:80?transport=tcp',
+            username: 'openrelayproject',
+            credential: 'openrelayprojectsecret',
           },
           {
-            urls: 'turn:a.relay.metered.ca:443?transport=tcp',
-            username: 'e8dd65c92f6b4b6e3f5a5c1a',
-            credential: 'kHdHl5wy0/ey3P8y',
+            urls: 'turn:staticauth.openrelay.metered.ca:443',
+            username: 'openrelayproject',
+            credential: 'openrelayprojectsecret',
+          },
+          {
+            urls: 'turn:staticauth.openrelay.metered.ca:443?transport=tcp',
+            username: 'openrelayproject',
+            credential: 'openrelayprojectsecret',
+          },
+          {
+            urls: 'turns:staticauth.openrelay.metered.ca:443?transport=tcp',
+            username: 'openrelayproject',
+            credential: 'openrelayprojectsecret',
           },
         ],
         iceCandidatePoolSize: 10,
