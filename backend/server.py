@@ -962,20 +962,45 @@ logging.basicConfig(
 logger = logging.getLogger(__name__)
 
 cleanup_task = None
+signal_cleanup_task = None
 
 @app.on_event("startup")
 async def startup_cleanup_task():
-    global cleanup_task
+    global cleanup_task, signal_cleanup_task
+    
+    # Create index for WebRTC signals for faster queries
+    await db.webrtc_signals.create_index("toSessionId")
+    await db.webrtc_signals.create_index("timestamp")
+    
     cleanup_task = asyncio.create_task(auto_cleanup_inactive_subgroups())
+    signal_cleanup_task = asyncio.create_task(auto_cleanup_old_signals())
     logger.info("Started auto-cleanup background task")
+
+async def auto_cleanup_old_signals():
+    """Clean up WebRTC signals older than 60 seconds"""
+    while True:
+        try:
+            cutoff = (datetime.utcnow() - timedelta(seconds=60)).isoformat()
+            result = await db.webrtc_signals.delete_many({"timestamp": {"$lt": cutoff}})
+            if result.deleted_count > 0:
+                logger.info(f"Cleaned up {result.deleted_count} old WebRTC signals")
+        except Exception as e:
+            logger.error(f"Error cleaning up signals: {e}")
+        await asyncio.sleep(30)  # Run every 30 seconds
 
 @app.on_event("shutdown")
 async def shutdown_db_client():
-    global cleanup_task
+    global cleanup_task, signal_cleanup_task
     if cleanup_task:
         cleanup_task.cancel()
         try:
             await cleanup_task
+        except asyncio.CancelledError:
+            pass
+    if signal_cleanup_task:
+        signal_cleanup_task.cancel()
+        try:
+            await signal_cleanup_task
         except asyncio.CancelledError:
             pass
     client.close()
