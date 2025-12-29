@@ -662,7 +662,7 @@ async def get_document_pages():
         return JSONResponse(
             content={
                 "pageCount": page_count,
-                "filename": current_document["filename"],
+                "filename": doc["filename"],
                 "timestamp": datetime.utcnow().timestamp()
             },
             headers={
@@ -677,14 +677,14 @@ async def get_document_pages():
 
 @api_router.get("/document/page/{page_number}")
 async def get_document_page(page_number: int, quality: int = 90, scale: float = 2.0):
-    global current_document
+    doc = await get_current_document()
     
-    if not current_document["data"]:
+    if not doc["data"]:
         raise HTTPException(status_code=404, detail="No document loaded")
     
     pdf_document = None
     try:
-        pdf_bytes = base64.b64decode(current_document["data"])
+        pdf_bytes = base64.b64decode(doc["data"])
         pdf_document = fitz.open(stream=pdf_bytes, filetype="pdf")
         
         if page_number < 0 or page_number >= pdf_document.page_count:
