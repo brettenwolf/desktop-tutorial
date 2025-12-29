@@ -845,7 +845,8 @@ const HomePage = () => {
       case 'mic_denied':
         return { text: 'Mic denied', color: 'text-red-400', bg: 'bg-red-500/20' };
       case 'ice_failed':
-        return { text: 'Connection failed', color: 'text-red-400', bg: 'bg-red-500/20' };
+      case 'connection_failed':
+        return { text: 'Conn. failed', color: 'text-orange-400', bg: 'bg-orange-500/20' };
       default:
         return { text: 'Offline', color: 'text-gray-400', bg: 'bg-gray-500/20' };
     }
