@@ -598,17 +598,16 @@ const HomePage = () => {
   // Render welcome screen
   if (!userRole) {
     return (
-      <div className="min-h-screen flex items-center justify-center p-4">
-        <div className="card max-w-md w-full text-center relative">
-          {/* Info Icon */}
-          <button
-            onClick={() => setShowInfoModal(true)}
-            className="absolute top-4 right-4 p-2 rounded-full bg-white/10 hover:bg-white/20 transition-all"
-            title="How to use ReadQueue"
-          >
-            <Info size={20} className="text-blue-400" />
-          </button>
-          
+      <div className="min-h-screen flex flex-col items-center p-4">
+        {/* Read Me Button - Centered at top */}
+        <button
+          onClick={() => setShowInfoModal(true)}
+          className="mt-4 mb-6 px-6 py-2 text-sm font-medium text-blue-400 bg-blue-500/10 hover:bg-blue-500/20 border border-blue-500/30 rounded-full transition-all"
+        >
+          Read Me
+        </button>
+        
+        <div className="card max-w-md w-full text-center flex-grow flex flex-col justify-center">
           <div className="text-6xl mb-6">📖</div>
           <h1 className="text-3xl font-bold mb-4">ReadQueue</h1>
           <p className="text-white/70 mb-8">Group Reading Queue Management</p>
