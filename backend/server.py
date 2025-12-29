@@ -64,8 +64,8 @@ cache_version = 0
 # Daily reset tracking
 last_reset_date = None
 
-# WebRTC Signaling - Store signaling messages in memory
-webrtc_signals = {}  # sessionId -> list of signals
+# WebRTC Signaling - Note: Signals are now stored in MongoDB for production reliability
+# The webrtc_signals collection will be used instead of in-memory storage
 
 
 async def check_and_perform_daily_reset():
