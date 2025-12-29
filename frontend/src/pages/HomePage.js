@@ -675,6 +675,18 @@ const HomePage = () => {
                   </ol>
                 </section>
                 
+                {/* Audio / Microphone */}
+                <section className="bg-orange-500/10 rounded-lg p-4 border border-orange-500/30">
+                  <h3 className="text-lg font-semibold text-orange-400 mb-3">🎤 Audio & Microphone</h3>
+                  <p className="text-white/80 leading-relaxed mb-3">
+                    <strong className="text-orange-300">Important:</strong> When the app first starts, you will see a prompt asking for permission to use your microphone. <strong>Please accept this prompt</strong> — it is critical for the audio features to work properly.
+                  </p>
+                  <ul className="text-white/80 space-y-2 list-disc list-inside">
+                    <li>A participant is <strong>automatically Muted</strong> until they reach <strong>Position 1</strong>, then they are <strong>automatically Unmuted</strong>.</li>
+                    <li>A participant can <strong>Unmute at any time</strong> to talk to the entire Group.</li>
+                  </ul>
+                </section>
+                
                 {/* Position 1 Timer */}
                 <section>
                   <h3 className="text-lg font-semibold text-yellow-400 mb-3">Action Timer</h3>
