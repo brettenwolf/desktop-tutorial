@@ -544,15 +544,15 @@ async def auto_load_document(loaderSessionId: str = None, force: bool = False):
 
 @api_router.post("/document/upload")
 async def upload_document(file: UploadFile = File(...), loaderSessionId: str = None):
-    global current_document
-    
     content = await file.read()
     encoded_content = base64.b64encode(content).decode('utf-8')
     
-    current_document["data"] = encoded_content
-    current_document["filename"] = file.filename
-    current_document["contentType"] = file.content_type
-    current_document["loaderSessionId"] = loaderSessionId
+    await set_current_document(
+        data=encoded_content,
+        filename=file.filename,
+        contentType=file.content_type,
+        loaderSessionId=loaderSessionId
+    )
     
     logger.info(f"Document uploaded: {file.filename}, size: {len(content)} bytes, loader: {loaderSessionId}")
     
@@ -565,12 +565,12 @@ async def upload_document(file: UploadFile = File(...), loaderSessionId: str = N
 
 @api_router.post("/document/upload-base64")
 async def upload_document_base64(upload_data: UploadDocumentBase64):
-    global current_document
-    
-    current_document["data"] = upload_data.data
-    current_document["filename"] = upload_data.filename
-    current_document["contentType"] = upload_data.contentType
-    current_document["loaderSessionId"] = upload_data.loaderSessionId
+    await set_current_document(
+        data=upload_data.data,
+        filename=upload_data.filename,
+        contentType=upload_data.contentType,
+        loaderSessionId=upload_data.loaderSessionId
+    )
     
     data_size = len(upload_data.data) * 3 // 4
     
@@ -584,30 +584,30 @@ async def upload_document_base64(upload_data: UploadDocumentBase64):
     }
 
 @api_router.get("/document/current")
-async def get_current_document():
-    global current_document
+async def get_current_document_endpoint():
+    doc = await get_current_document()
     
-    if not current_document["data"]:
+    if not doc["data"]:
         raise HTTPException(status_code=404, detail="No document loaded")
     
     return {
-        "filename": current_document["filename"],
-        "contentType": current_document["contentType"],
-        "data": current_document["data"]
+        "filename": doc["filename"],
+        "contentType": doc["contentType"],
+        "data": doc["data"]
     }
 
 @api_router.get("/document/view")
 async def view_current_document():
-    global current_document
+    doc = await get_current_document()
     
-    if not current_document["data"]:
+    if not doc["data"]:
         raise HTTPException(status_code=404, detail="No document loaded")
     
-    pdf_bytes = base64.b64decode(current_document["data"])
+    pdf_bytes = base64.b64decode(doc["data"])
     
     return Response(
         content=pdf_bytes,
-        media_type=current_document["contentType"] or "application/pdf",
+        media_type=doc["contentType"] or "application/pdf",
         headers={
             "Content-Disposition": f'inline; filename="{current_document["filename"]}"',
             "Cache-Control": "no-cache"
