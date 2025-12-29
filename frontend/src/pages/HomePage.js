@@ -898,6 +898,11 @@ const HomePage = () => {
                 >
                   Unmute
                 </button>
+                
+                {/* Connection Status Indicator */}
+                <div className={`ml-2 px-2 py-1 rounded text-xs font-medium ${connectionStatus.bg} ${connectionStatus.color}`}>
+                  {connectionStatus.text}
+                </div>
               </div>
             )}
           </div>
