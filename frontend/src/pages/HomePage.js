@@ -932,6 +932,19 @@ const HomePage = () => {
             </div>
           )}
           
+          {/* Audio Connection Warning */}
+          {audioWarning && (
+            <div className="bg-orange-500/20 border border-orange-500/30 rounded-lg p-2 sm:p-3 mb-2 sm:mb-4 flex items-center justify-between gap-2">
+              <p className="text-orange-400 text-sm flex-1">⚠️ {audioWarning.message}</p>
+              <button 
+                onClick={() => setAudioWarning(null)}
+                className="text-orange-400 hover:text-orange-300 text-lg font-bold px-2"
+              >
+                ×
+              </button>
+            </div>
+          )}
+          
           <div className="flex flex-wrap items-center justify-between gap-2 sm:gap-4">
             {/* Position Info */}
             <div className="flex items-center gap-2 sm:gap-6">
