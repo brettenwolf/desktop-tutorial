@@ -615,25 +615,23 @@ async def view_current_document():
 
 @api_router.get("/document/status")
 async def get_document_status():
-    global current_document, cache_version
+    doc = await get_current_document()
     return {
-        "loaded": current_document["data"] is not None,
-        "filename": current_document.get("filename"),
-        "loaderSessionId": current_document.get("loaderSessionId"),
-        "cacheVersion": cache_version
+        "loaded": doc["data"] is not None,
+        "filename": doc.get("filename"),
+        "loaderSessionId": doc.get("loaderSessionId"),
+        "cacheVersion": doc.get("cacheVersion", 0)
     }
 
 @api_router.delete("/document/clear")
 async def clear_document(loaderSessionId: str = None):
-    global current_document, cache_version
-    # Note: We do NOT clear random_pdf_cache here - it should persist for the entire day
-    
-    current_document["data"] = None
-    current_document["filename"] = None
-    current_document["contentType"] = None
-    current_document["loaderSessionId"] = None
-    
-    cache_version += 1
+    cache_version = await set_current_document(
+        data=None, 
+        filename=None, 
+        contentType=None, 
+        loaderSessionId=None, 
+        increment_cache=True
+    )
     
     await db.queue.delete_many({})
     
@@ -647,13 +645,13 @@ async def clear_document(loaderSessionId: str = None):
 
 @api_router.get("/document/pages")
 async def get_document_pages():
-    global current_document
+    doc = await get_current_document()
     
-    if not current_document["data"]:
+    if not doc["data"]:
         raise HTTPException(status_code=404, detail="No document loaded")
     
     try:
-        pdf_bytes = base64.b64decode(current_document["data"])
+        pdf_bytes = base64.b64decode(doc["data"])
         pdf_document = fitz.open(stream=pdf_bytes, filetype="pdf")
         page_count = pdf_document.page_count
         
