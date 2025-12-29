@@ -328,23 +328,36 @@ class AudioManager {
         if (!pc || pc === 'waiting') {
           const config = {
             iceServers: [
+              // Google STUN servers
               { urls: 'stun:stun.l.google.com:19302' },
               { urls: 'stun:stun1.l.google.com:19302' },
-              // Free TURN server for testing
+              // Open Relay STUN
+              { urls: 'stun:staticauth.openrelay.metered.ca:80' },
+              // Open Relay TURN servers (free, working as of 2025)
               {
-                urls: 'turn:a.relay.metered.ca:80',
-                username: 'e8dd65c92f6b4b6e3f5a5c1a',
-                credential: 'kHdHl5wy0/ey3P8y',
+                urls: 'turn:staticauth.openrelay.metered.ca:80',
+                username: 'openrelayproject',
+                credential: 'openrelayprojectsecret',
               },
               {
-                urls: 'turn:a.relay.metered.ca:443',
-                username: 'e8dd65c92f6b4b6e3f5a5c1a',
-                credential: 'kHdHl5wy0/ey3P8y',
+                urls: 'turn:staticauth.openrelay.metered.ca:80?transport=tcp',
+                username: 'openrelayproject',
+                credential: 'openrelayprojectsecret',
               },
               {
-                urls: 'turn:a.relay.metered.ca:443?transport=tcp',
-                username: 'e8dd65c92f6b4b6e3f5a5c1a',
-                credential: 'kHdHl5wy0/ey3P8y',
+                urls: 'turn:staticauth.openrelay.metered.ca:443',
+                username: 'openrelayproject',
+                credential: 'openrelayprojectsecret',
+              },
+              {
+                urls: 'turn:staticauth.openrelay.metered.ca:443?transport=tcp',
+                username: 'openrelayproject',
+                credential: 'openrelayprojectsecret',
+              },
+              {
+                urls: 'turns:staticauth.openrelay.metered.ca:443?transport=tcp',
+                username: 'openrelayproject',
+                credential: 'openrelayprojectsecret',
               },
             ],
             iceCandidatePoolSize: 10,
@@ -377,11 +390,21 @@ class AudioManager {
             console.log(`Peer ${from} connection state: ${pc.connectionState}`);
             if (pc.connectionState === 'connected') {
               console.log(`✓✓✓ Successfully connected to peer ${from}!`);
+              this.updateConnectedPeerCount();
+              this.reportStatus('connected', this.connectedPeerCount);
+            } else if (pc.connectionState === 'disconnected' || pc.connectionState === 'failed') {
+              this.updateConnectedPeerCount();
+              if (this.connectedPeerCount === 0) {
+                this.reportStatus('ready', 0);
+              }
             }
           };
           
           pc.oniceconnectionstatechange = () => {
             console.log(`Peer ${from} ICE state: ${pc.iceConnectionState}`);
+            if (pc.iceConnectionState === 'failed') {
+              this.reportStatus('ice_failed');
+            }
           };
         }
 
