@@ -436,7 +436,8 @@ async def clear_all_queues():
 # Document Management Endpoints
 @api_router.get("/config/random-cache")
 async def get_random_cache():
-    return {"cache": random_pdf_cache}
+    cache = await get_random_pdf_cache()
+    return {"cache": cache}
 
 @api_router.delete("/config/random-cache")
 async def clear_random_cache():
