@@ -301,9 +301,20 @@ class AudioManager {
         console.log(`Peer ${peerId} connection state: ${pc.connectionState}`);
         if (pc.connectionState === 'connected') {
           console.log(`✓✓✓ Successfully connected to peer ${peerId}!`);
+          this.connectionAttempts = 0; // Reset on success
           this.updateConnectedPeerCount();
           this.reportStatus('connected', this.connectedPeerCount);
-        } else if (pc.connectionState === 'disconnected' || pc.connectionState === 'failed') {
+        } else if (pc.connectionState === 'failed') {
+          this.connectionAttempts++;
+          this.updateConnectedPeerCount();
+          if (this.connectedPeerCount === 0) {
+            this.reportStatus('connection_failed', 0);
+          }
+          // Warn user after multiple failures
+          if (this.connectionAttempts >= 2) {
+            this.reportWarning('Audio connection failed. This may be a network issue or the TURN relay service may be temporarily unavailable.', 'connection');
+          }
+        } else if (pc.connectionState === 'disconnected') {
           this.updateConnectedPeerCount();
           if (this.connectedPeerCount === 0) {
             this.reportStatus('ready', 0);
@@ -316,6 +327,18 @@ class AudioManager {
         if (pc.iceConnectionState === 'failed') {
           console.log(`✗ ICE connection failed for peer ${peerId}`);
           this.reportStatus('ice_failed');
+          this.connectionAttempts++;
+          // Warn on ICE failure
+          if (this.connectionAttempts >= 2) {
+            this.reportWarning('Unable to establish peer connection. Check your network or try rejoining the queue.', 'ice');
+          }
+        } else if (pc.iceConnectionState === 'disconnected') {
+          // Brief disconnections can recover, only warn if it persists
+          setTimeout(() => {
+            if (pc.iceConnectionState === 'disconnected') {
+              this.reportWarning('Audio connection interrupted. Attempting to reconnect...', 'disconnect');
+            }
+          }, 5000);
         }
       };
 
