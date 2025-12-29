@@ -609,7 +609,7 @@ async def view_current_document():
         content=pdf_bytes,
         media_type=doc["contentType"] or "application/pdf",
         headers={
-            "Content-Disposition": f'inline; filename="{current_document["filename"]}"',
+            "Content-Disposition": f'inline; filename="{doc["filename"]}"',
             "Cache-Control": "no-cache"
         }
     )
