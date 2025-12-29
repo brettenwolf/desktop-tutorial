@@ -17,12 +17,20 @@ class AudioManager {
     this.audioContext = null;
     this.isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent) && !window.MSStream;
     this.onStatusChange = null; // Callback for status updates
+    this.onWarning = null; // Callback for warnings
     this.connectedPeerCount = 0;
+    this.connectionAttempts = 0;
+    this.lastWarningTime = 0;
   }
 
   // Set callback for status changes
   setStatusCallback(callback) {
     this.onStatusChange = callback;
+  }
+
+  // Set callback for warnings (connection issues, etc.)
+  setWarningCallback(callback) {
+    this.onWarning = callback;
   }
 
   // Report status to UI
@@ -32,6 +40,19 @@ class AudioManager {
       this.onStatusChange(status, peerCount);
     }
     console.log(`Audio Status: ${status}, Connected Peers: ${peerCount}`);
+  }
+
+  // Report warning to UI (throttled to avoid spam)
+  reportWarning(message, type = 'connection') {
+    const now = Date.now();
+    // Only show warning once every 30 seconds to avoid spam
+    if (now - this.lastWarningTime > 30000) {
+      this.lastWarningTime = now;
+      if (this.onWarning) {
+        this.onWarning(message, type);
+      }
+      console.warn(`Audio Warning: ${message}`);
+    }
   }
 
   async initialize(startMuted = true) {
