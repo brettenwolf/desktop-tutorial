@@ -875,18 +875,19 @@ async def delete_random_pdf(filename: str):
         raise HTTPException(status_code=500, detail=str(e))
 
 
-# WebRTC Signaling Endpoints
+# WebRTC Signaling Endpoints - Using MongoDB for production reliability
 @api_router.post("/webrtc/signal")
 async def send_webrtc_signal(signal: WebRTCSignal):
-    if signal.toSessionId not in webrtc_signals:
-        webrtc_signals[signal.toSessionId] = []
-    
-    webrtc_signals[signal.toSessionId].append({
-        "from": signal.fromSessionId,
+    # Store signal in MongoDB instead of in-memory
+    signal_doc = {
+        "toSessionId": signal.toSessionId,
+        "fromSessionId": signal.fromSessionId,
         "type": signal.type,
         "data": signal.data,
-        "timestamp": datetime.utcnow()
-    })
+        "timestamp": datetime.utcnow().isoformat(),
+        "processed": False
+    }
+    await db.webrtc_signals.insert_one(signal_doc)
     
     logger.info(f"WebRTC signal stored: {signal.type} from {signal.fromSessionId} to {signal.toSessionId}")
     
@@ -894,11 +895,34 @@ async def send_webrtc_signal(signal: WebRTCSignal):
 
 @api_router.get("/webrtc/signals/{sessionId}")
 async def get_webrtc_signals(sessionId: str):
-    signals = webrtc_signals.get(sessionId, [])
-    if sessionId in webrtc_signals:
-        webrtc_signals[sessionId] = []
+    # Fetch and delete signals for this session from MongoDB
+    signals_cursor = db.webrtc_signals.find({"toSessionId": sessionId, "processed": False})
+    signals_list = await signals_cursor.to_list(100)
     
-    return {"signals": signals}
+    # Mark signals as processed (or delete them)
+    if signals_list:
+        signal_ids = [s["_id"] for s in signals_list]
+        await db.webrtc_signals.delete_many({"_id": {"$in": signal_ids}})
+    
+    # Format response (exclude MongoDB _id)
+    formatted_signals = [
+        {
+            "from": s["fromSessionId"],
+            "type": s["type"],
+            "data": s["data"],
+            "timestamp": s["timestamp"]
+        }
+        for s in signals_list
+    ]
+    
+    return {"signals": formatted_signals}
+
+# Cleanup old signals periodically (signals older than 30 seconds)
+@api_router.delete("/webrtc/cleanup")
+async def cleanup_old_signals():
+    cutoff = (datetime.utcnow() - timedelta(seconds=30)).isoformat()
+    result = await db.webrtc_signals.delete_many({"timestamp": {"$lt": cutoff}})
+    return {"deleted": result.deleted_count}
 
 @api_router.get("/webrtc/peers")
 async def get_webrtc_peers(subGroup: str = None):
