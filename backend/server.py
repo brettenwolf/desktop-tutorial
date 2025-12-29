@@ -438,31 +438,26 @@ async def get_random_cache():
 
 @api_router.delete("/config/random-cache")
 async def clear_random_cache():
-    random_pdf_cache.clear()
+    await set_random_pdf_cache({})
     logger.info("Random PDF cache cleared by admin")
     return {"success": True, "message": "Random PDF cache cleared"}
 
 @api_router.get("/document/auto-load")
 async def auto_load_document(loaderSessionId: str = None, force: bool = False):
-    global current_document, cache_version
+    doc = await get_current_document()
     
-    if not force and current_document["data"] is not None:
-        logger.info(f"Document already loaded: {current_document.get('filename')}, skipping auto-load")
+    if not force and doc["data"] is not None:
+        logger.info(f"Document already loaded: {doc.get('filename')}, skipping auto-load")
         return {
             "success": True,
-            "filename": current_document.get("filename"),
-            "message": f"PDF '{current_document.get('filename')}' already loaded",
+            "filename": doc.get("filename"),
+            "message": f"PDF '{doc.get('filename')}' already loaded",
             "cached": True
         }
     
-    if force and current_document["data"] is not None:
-        logger.info(f"Force reload requested, clearing current document: {current_document.get('filename')}")
-        current_document["data"] = None
-        current_document["filename"] = None
-        current_document["contentType"] = None
-        current_document["loaderSessionId"] = None
-        cache_version += 1
-        logger.info(f"Cache version incremented to {cache_version}")
+    if force and doc["data"] is not None:
+        logger.info(f"Force reload requested, clearing current document: {doc.get('filename')}")
+        await set_current_document(data=None, filename=None, contentType=None, loaderSessionId=None, increment_cache=True)
     
     cst_time = datetime.utcnow() + timedelta(hours=TIMEZONE_OFFSET)
     today = cst_time.strftime("%m%d%Y")
@@ -472,6 +467,8 @@ async def auto_load_document(loaderSessionId: str = None, force: bool = False):
     logger.info(f"Searching for PDF with date: {today} in {pdf_folder}")
     
     matching_files = list(pdf_folder.glob(f"{today}_*.pdf"))
+    
+    random_pdf_cache = await get_random_pdf_cache()
     
     if not matching_files:
         logger.warning(f"No PDF found for today's date: {today}, checking Random folder for fallback...")
@@ -486,6 +483,7 @@ async def auto_load_document(loaderSessionId: str = None, force: bool = False):
             else:
                 logger.warning(f"Cached random PDF {cached_filename} no longer exists, selecting new one")
                 del random_pdf_cache[today]
+                await set_random_pdf_cache(random_pdf_cache)
                 pdf_file = None
         else:
             pdf_file = None
@@ -498,6 +496,7 @@ async def auto_load_document(loaderSessionId: str = None, force: bool = False):
                 if random_files:
                     pdf_file = random.choice(random_files)
                     random_pdf_cache[today] = pdf_file.name
+                    await set_random_pdf_cache(random_pdf_cache)
                     logger.info(f"Selected NEW random PDF for {today}: {pdf_file.name}")
                 else:
                     logger.error("No PDFs found in Random folder")
@@ -524,10 +523,12 @@ async def auto_load_document(loaderSessionId: str = None, force: bool = False):
         
         encoded_content = base64.b64encode(content).decode('utf-8')
         
-        current_document["data"] = encoded_content
-        current_document["filename"] = pdf_file.name
-        current_document["contentType"] = "application/pdf"
-        current_document["loaderSessionId"] = loaderSessionId
+        await set_current_document(
+            data=encoded_content,
+            filename=pdf_file.name,
+            contentType="application/pdf",
+            loaderSessionId=loaderSessionId
+        )
         
         logger.info(f"Auto-loaded PDF: {pdf_file.name}, size: ~{len(content)} bytes, loader: {loaderSessionId}")
         
