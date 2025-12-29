@@ -530,25 +530,15 @@ const AdminPage = () => {
             <FileText size={20} />
             Current Document
           </h3>
-          <div className="flex items-center justify-between">
-            <div>
-              {documentStatus.loaded ? (
-                <>
-                  <p className="font-medium text-green-400">{documentStatus.filename}</p>
-                  <p className="text-sm text-white/70">Currently loaded</p>
-                </>
-              ) : (
-                <p className="text-white/70">No document loaded</p>
-              )}
-            </div>
-            <button
-              onClick={handleForceReload}
-              disabled={reloading}
-              className={`${documentStatus.loaded ? 'btn-secondary' : 'btn-primary'} text-sm py-2 px-3 flex items-center gap-2 disabled:opacity-50`}
-            >
-              {reloading ? <Loader2 size={16} className="animate-spin" /> : <RefreshCw size={16} />}
-              {reloading ? 'Loading...' : documentStatus.loaded ? 'Reload' : 'Load Document'}
-            </button>
+          <div>
+            {documentStatus.loaded ? (
+              <>
+                <p className="font-medium text-green-400">{documentStatus.filename}</p>
+                <p className="text-sm text-white/70">Currently loaded</p>
+              </>
+            ) : (
+              <p className="text-white/70">No document loaded</p>
+            )}
           </div>
         </div>
 
