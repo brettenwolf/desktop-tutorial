@@ -387,32 +387,43 @@ class AudioManager {
               { urls: 'stun:stun.l.google.com:19302' },
               { urls: 'stun:stun1.l.google.com:19302' },
               // Open Relay STUN
-              { urls: 'stun:staticauth.openrelay.metered.ca:80' },
-              // Open Relay TURN servers (free, working as of 2025)
+              { urls: 'stun:openrelay.metered.ca:80' },
+              // Open Relay TURN servers - corrected credentials
               {
-                urls: 'turn:staticauth.openrelay.metered.ca:80',
+                urls: 'turn:openrelay.metered.ca:80',
                 username: 'openrelayproject',
-                credential: 'openrelayprojectsecret',
+                credential: 'openrelayproject',
               },
               {
-                urls: 'turn:staticauth.openrelay.metered.ca:80?transport=tcp',
+                urls: 'turn:openrelay.metered.ca:80?transport=tcp',
                 username: 'openrelayproject',
-                credential: 'openrelayprojectsecret',
+                credential: 'openrelayproject',
               },
               {
-                urls: 'turn:staticauth.openrelay.metered.ca:443',
+                urls: 'turn:openrelay.metered.ca:443',
                 username: 'openrelayproject',
-                credential: 'openrelayprojectsecret',
+                credential: 'openrelayproject',
               },
               {
-                urls: 'turn:staticauth.openrelay.metered.ca:443?transport=tcp',
+                urls: 'turn:openrelay.metered.ca:443?transport=tcp',
                 username: 'openrelayproject',
-                credential: 'openrelayprojectsecret',
+                credential: 'openrelayproject',
               },
               {
-                urls: 'turns:staticauth.openrelay.metered.ca:443?transport=tcp',
+                urls: 'turns:openrelay.metered.ca:443?transport=tcp',
                 username: 'openrelayproject',
-                credential: 'openrelayprojectsecret',
+                credential: 'openrelayproject',
+              },
+              // Backup: standard relay
+              {
+                urls: 'turn:standard.relay.metered.ca:80',
+                username: 'openrelayproject',
+                credential: 'openrelayproject',
+              },
+              {
+                urls: 'turn:standard.relay.metered.ca:443?transport=tcp',
+                username: 'openrelayproject',
+                credential: 'openrelayproject',
               },
             ],
             iceCandidatePoolSize: 10,
