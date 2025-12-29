@@ -44,28 +44,71 @@ app = FastAPI()
 # Create a router with the /api prefix
 api_router = APIRouter(prefix="/api")
 
-# Global document storage (in-memory)
-current_document = {
-    "data": None,  # base64 encoded document
-    "filename": None,
-    "contentType": None,
-    "loaderSessionId": None
-}
-
 # System configuration - Hardcoded to CST (UTC-6)
 TIMEZONE_OFFSET = -6  # CST (Central Standard Time)
 
-# Cache for random PDF selection per day
-random_pdf_cache = {}
-
-# Cache version for forcing fresh image loads
-cache_version = 0
+# Cache version for forcing fresh image loads (stored in MongoDB for persistence)
+# Note: Document data is now stored in MongoDB collection 'current_document' for production reliability
 
 # Daily reset tracking
 last_reset_date = None
 
 # WebRTC Signaling - Note: Signals are now stored in MongoDB for production reliability
 # The webrtc_signals collection will be used instead of in-memory storage
+
+# Helper functions for document storage in MongoDB
+async def get_current_document():
+    """Get current document from MongoDB"""
+    doc = await db.current_document.find_one({"_id": "current"})
+    if doc:
+        return {
+            "data": doc.get("data"),
+            "filename": doc.get("filename"),
+            "contentType": doc.get("contentType"),
+            "loaderSessionId": doc.get("loaderSessionId"),
+            "cacheVersion": doc.get("cacheVersion", 0)
+        }
+    return {
+        "data": None,
+        "filename": None,
+        "contentType": None,
+        "loaderSessionId": None,
+        "cacheVersion": 0
+    }
+
+async def set_current_document(data=None, filename=None, contentType=None, loaderSessionId=None, increment_cache=False):
+    """Set current document in MongoDB"""
+    current = await get_current_document()
+    cache_version = current.get("cacheVersion", 0)
+    if increment_cache:
+        cache_version += 1
+    
+    await db.current_document.update_one(
+        {"_id": "current"},
+        {"$set": {
+            "data": data,
+            "filename": filename,
+            "contentType": contentType,
+            "loaderSessionId": loaderSessionId,
+            "cacheVersion": cache_version,
+            "updatedAt": datetime.utcnow().isoformat()
+        }},
+        upsert=True
+    )
+    return cache_version
+
+async def get_random_pdf_cache():
+    """Get random PDF cache from MongoDB"""
+    doc = await db.app_cache.find_one({"_id": "random_pdf_cache"})
+    return doc.get("cache", {}) if doc else {}
+
+async def set_random_pdf_cache(cache):
+    """Set random PDF cache in MongoDB"""
+    await db.app_cache.update_one(
+        {"_id": "random_pdf_cache"},
+        {"$set": {"cache": cache, "updatedAt": datetime.utcnow().isoformat()}},
+        upsert=True
+    )
 
 
 async def check_and_perform_daily_reset():
