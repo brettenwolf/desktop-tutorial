@@ -161,6 +161,15 @@ const HomePage = () => {
         setConnectedPeers(peerCount);
       });
       
+      // Set up warning callback for connection issues
+      audioManager.current.setWarningCallback((message, type) => {
+        setAudioWarning({ message, type, timestamp: Date.now() });
+        // Auto-dismiss warning after 10 seconds
+        setTimeout(() => {
+          setAudioWarning(prev => prev?.timestamp === Date.now() ? null : prev);
+        }, 10000);
+      });
+      
       const success = await audioManager.current.initialize(startMuted);
       
       if (success) {
