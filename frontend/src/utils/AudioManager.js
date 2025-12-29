@@ -234,30 +234,26 @@ class AudioManager {
       // Use multiple STUN/TURN servers for better connectivity
       const config = {
         iceServers: [
-          // Google STUN servers
+          // Google STUN servers (most reliable)
           { urls: 'stun:stun.l.google.com:19302' },
           { urls: 'stun:stun1.l.google.com:19302' },
           { urls: 'stun:stun2.l.google.com:19302' },
-          // Open Relay STUN
-          { urls: 'stun:openrelay.metered.ca:80' },
-          // Open Relay TURN servers - corrected credentials
+          { urls: 'stun:stun3.l.google.com:19302' },
+          { urls: 'stun:stun4.l.google.com:19302' },
+          // Open Relay TURN servers - multiple protocols for firewall bypass
           {
-            urls: 'turn:openrelay.metered.ca:80',
+            urls: [
+              'turn:openrelay.metered.ca:80',
+              'turn:openrelay.metered.ca:443',
+            ],
             username: 'openrelayproject',
             credential: 'openrelayproject',
           },
           {
-            urls: 'turn:openrelay.metered.ca:80?transport=tcp',
-            username: 'openrelayproject',
-            credential: 'openrelayproject',
-          },
-          {
-            urls: 'turn:openrelay.metered.ca:443',
-            username: 'openrelayproject',
-            credential: 'openrelayproject',
-          },
-          {
-            urls: 'turn:openrelay.metered.ca:443?transport=tcp',
+            urls: [
+              'turn:openrelay.metered.ca:80?transport=tcp',
+              'turn:openrelay.metered.ca:443?transport=tcp',
+            ],
             username: 'openrelayproject',
             credential: 'openrelayproject',
           },
@@ -266,19 +262,9 @@ class AudioManager {
             username: 'openrelayproject',
             credential: 'openrelayproject',
           },
-          // Backup: standard relay (different subdomain)
-          {
-            urls: 'turn:standard.relay.metered.ca:80',
-            username: 'openrelayproject',
-            credential: 'openrelayproject',
-          },
-          {
-            urls: 'turn:standard.relay.metered.ca:443?transport=tcp',
-            username: 'openrelayproject',
-            credential: 'openrelayproject',
-          },
         ],
         iceCandidatePoolSize: 10,
+        iceTransportPolicy: 'all', // Try all candidates (relay + direct)
       };
 
       const pc = new RTCPeerConnection(config);
