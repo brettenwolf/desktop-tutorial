@@ -636,9 +636,12 @@ const HomePage = () => {
     };
   }, [userRole, documentStatus.loaded]);
 
+  // Auto-load document when Position 1 and no document
   useEffect(() => {
-    autoLoadDocument();
-  }, [queueStatus?.isPosition1, hasJoined, documentStatus.loaded]);
+    if (queueStatus?.isPosition1 && hasJoined && !documentData) {
+      autoLoadDocument();
+    }
+  }, [queueStatus?.isPosition1, hasJoined, documentData]);
 
   // Request notification permission (not supported on iOS)
   useEffect(() => {
