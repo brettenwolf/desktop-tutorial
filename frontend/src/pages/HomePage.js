@@ -452,9 +452,16 @@ const HomePage = () => {
     try {
       const response = await fetch(`${API}/document/current`);
       if (response.ok) {
-        const doc = await response.json();
-        setDocumentData(doc.data);
-        setDocumentStatus({ loaded: true, filename: doc.filename });
+        const text = await response.text();
+        try {
+          const doc = JSON.parse(text);
+          setDocumentData(doc.data);
+          setDocumentStatus({ loaded: true, filename: doc.filename });
+        } catch (parseError) {
+          console.error('Error parsing document JSON:', parseError);
+        }
+      } else {
+        console.log('Document not available:', response.status);
       }
     } catch (error) {
       console.log('Error fetching document:', error);
