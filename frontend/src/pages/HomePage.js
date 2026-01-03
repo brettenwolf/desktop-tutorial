@@ -425,29 +425,49 @@ const HomePage = () => {
     }
   };
 
-  // Document polling
+  // Document polling - polls until document is loaded
   const startDocumentPolling = () => {
     if (documentPollingInterval.current) clearInterval(documentPollingInterval.current);
     
-    documentPollingInterval.current = setInterval(async () => {
+    const pollDocument = async () => {
       try {
-        const response = await fetch(`${API}/document/status`);
-        if (response.ok) {
-          const status = await response.json();
-          setDocumentStatus(status);
-          
-          if (status.loaded) {
-            fetchDocument();
-            if (documentPollingInterval.current) clearInterval(documentPollingInterval.current);
+        // First check if document is loaded
+        const statusResponse = await fetch(`${API}/document/status`);
+        if (!statusResponse.ok) return;
+        
+        const status = await statusResponse.json();
+        
+        if (status.loaded) {
+          // Document is loaded, fetch it
+          const docResponse = await fetch(`${API}/document/current`);
+          if (docResponse.ok) {
+            const docText = await docResponse.text();
+            try {
+              const doc = JSON.parse(docText);
+              setDocumentData(doc.data);
+              setDocumentStatus({ loaded: true, filename: doc.filename });
+              // Stop polling once we have the document
+              if (documentPollingInterval.current) {
+                clearInterval(documentPollingInterval.current);
+              }
+            } catch (parseError) {
+              console.error('Error parsing document:', parseError);
+            }
           }
+        } else {
+          setDocumentStatus({ loaded: false, filename: null });
         }
       } catch (error) {
-        console.log('Error polling document status:', error);
+        console.log('Error polling document:', error);
       }
-    }, 2000);
+    };
+    
+    // Poll immediately, then every 2 seconds
+    pollDocument();
+    documentPollingInterval.current = setInterval(pollDocument, 2000);
   };
 
-  // Fetch document
+  // Fetch document (called when we know document is loaded)
   const fetchDocument = async () => {
     try {
       const response = await fetch(`${API}/document/current`);
