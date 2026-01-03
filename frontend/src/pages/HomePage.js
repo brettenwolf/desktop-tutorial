@@ -991,6 +991,20 @@ const HomePage = () => {
             </div>
           )}
           
+          {/* Mic Denied Warning */}
+          {audioConnectionStatus === 'mic_denied' && (
+            <div className="bg-red-500/20 border border-red-500/30 rounded-lg p-2 sm:p-3 mb-2 sm:mb-4">
+              <p className="text-red-400 text-sm">
+                🎤 <strong>Microphone access denied.</strong> To enable audio:
+              </p>
+              <ul className="text-red-300 text-xs mt-1 ml-4 list-disc">
+                <li>Click the 🔒 lock icon in your browser's address bar</li>
+                <li>Find "Microphone" and change it to "Allow"</li>
+                <li>Refresh the page</li>
+              </ul>
+            </div>
+          )}
+          
           <div className="flex flex-wrap items-center justify-between gap-2 sm:gap-4">
             {/* Position Info */}
             <div className="flex items-center gap-2 sm:gap-6">
