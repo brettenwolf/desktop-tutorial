@@ -488,14 +488,14 @@ const HomePage = () => {
     }
   };
 
-  // Auto-load document
+  // Auto-load document - triggered for Position 1 users when document isn't loaded
   const autoLoadDocument = async () => {
-    if (!queueStatus?.isPosition1 || !hasJoined || documentStatus.loaded || uploadingDocument || autoLoadAttempted) {
+    // Skip if not Position 1, not joined, already uploading, or already have document data
+    if (!queueStatus?.isPosition1 || !hasJoined || uploadingDocument || documentData) {
       return;
     }
 
     try {
-      setAutoLoadAttempted(true);
       setUploadingDocument(true);
       
       const response = await fetch(`${API}/document/auto-load?loaderSessionId=${sessionId}`);
@@ -509,9 +509,10 @@ const HomePage = () => {
           console.log('Auto-load response:', autoLoadText);
         }
         
-        // Wait a moment for the document to be stored
+        // Wait a moment for the document to be stored in MongoDB
         await new Promise(resolve => setTimeout(resolve, 500));
         
+        // Fetch the document data
         const docResponse = await fetch(`${API}/document/current`);
         if (docResponse.ok) {
           const docText = await docResponse.text();
