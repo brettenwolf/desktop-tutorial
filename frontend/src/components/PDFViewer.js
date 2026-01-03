@@ -13,25 +13,42 @@ const PDFViewer = ({ backendUrl }) => {
 
   const API = `${backendUrl}/api`;
 
-  // Fetch page count on mount
+  // Fetch page count on mount - with retry logic
   useEffect(() => {
+    let retryCount = 0;
+    const maxRetries = 5;
+    
     const fetchPages = async () => {
       try {
         setLoading(true);
+        setError(null);
         const response = await fetch(`${API}/document/pages`);
         if (response.ok) {
           const data = await response.json();
           setPageCount(data.pageCount);
           // Initialize loaded pages array
           setLoadedPages(new Array(data.pageCount).fill(null));
+        } else if (response.status === 404 && retryCount < maxRetries) {
+          // Document not loaded yet, retry after delay
+          retryCount++;
+          console.log(`Document not ready, retry ${retryCount}/${maxRetries}...`);
+          setTimeout(fetchPages, 1000);
+          return; // Don't set loading to false yet
         } else {
           setError('Failed to load document');
         }
       } catch (err) {
         console.error('Error fetching pages:', err);
+        if (retryCount < maxRetries) {
+          retryCount++;
+          setTimeout(fetchPages, 1000);
+          return;
+        }
         setError('Failed to load document');
       } finally {
-        setLoading(false);
+        if (retryCount >= maxRetries || error === null) {
+          setLoading(false);
+        }
       }
     };
 
