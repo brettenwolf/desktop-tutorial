@@ -479,19 +479,33 @@ const HomePage = () => {
       setUploadingDocument(true);
       
       const response = await fetch(`${API}/document/auto-load?loaderSessionId=${sessionId}`);
+      const autoLoadText = await response.text();
       
       if (response.ok) {
+        try {
+          const autoLoadResult = JSON.parse(autoLoadText);
+          console.log('Auto-load result:', autoLoadResult);
+        } catch (e) {
+          console.log('Auto-load response:', autoLoadText);
+        }
+        
+        // Wait a moment for the document to be stored
+        await new Promise(resolve => setTimeout(resolve, 500));
+        
         const docResponse = await fetch(`${API}/document/current`);
         if (docResponse.ok) {
-          const doc = await docResponse.json();
-          setDocumentData(doc.data);
-          setDocumentStatus({ loaded: true, filename: doc.filename });
+          const docText = await docResponse.text();
+          try {
+            const doc = JSON.parse(docText);
+            setDocumentData(doc.data);
+            setDocumentStatus({ loaded: true, filename: doc.filename });
+          } catch (parseError) {
+            console.error('Error parsing document:', parseError);
+          }
         }
       }
-      // Removed toast for no PDF - the "Waiting for document" UI is clear enough
     } catch (error) {
       console.error('Auto-load error:', error);
-      // Removed toast - UI already shows "Waiting for document"
     } finally {
       setUploadingDocument(false);
     }
