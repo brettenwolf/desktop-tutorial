@@ -762,8 +762,6 @@ async def list_pdf_library():
 
 @api_router.post("/document/library/upload")
 async def upload_pdf_to_library(file: UploadFile = File(...)):
-    global current_document, cache_version
-    
     try:
         if not file.filename.endswith('.pdf'):
             raise HTTPException(status_code=400, detail="Only PDF files are allowed")
@@ -774,22 +772,24 @@ async def upload_pdf_to_library(file: UploadFile = File(...)):
         
         file_path = pdf_folder / file.filename
         
-        is_currently_loaded = (current_document["data"] is not None and 
-                               current_document.get("filename") == file.filename)
+        # Check if this file is currently loaded
+        doc = await get_current_document()
+        is_currently_loaded = (doc["data"] is not None and 
+                               doc.get("filename") == file.filename)
         
         cst_time = datetime.utcnow() + timedelta(hours=TIMEZONE_OFFSET)
         today = cst_time.strftime("%m%d%Y")
         is_todays_pdf = file.filename.startswith(f"{today}_")
         
-        should_clear = is_currently_loaded or (is_todays_pdf and current_document["data"] is not None)
+        should_clear = is_currently_loaded or (is_todays_pdf and doc["data"] is not None)
         
         if should_clear:
             logger.info("Clearing document from memory before upload")
-            current_document["data"] = None
-            current_document["filename"] = None
-            current_document["contentType"] = None
-            current_document["loaderSessionId"] = None
-            cache_version += 1
+            cache_version = await set_current_document(
+                data=None, filename=None, contentType=None, loaderSessionId=None, increment_cache=True
+            )
+        else:
+            cache_version = doc.get("cacheVersion", 0)
         
         content = await file.read()
         with open(file_path, 'wb') as f:
@@ -819,7 +819,8 @@ async def delete_pdf_from_library(filename: str):
         if not file_path.exists():
             raise HTTPException(status_code=404, detail=f"File '{filename}' not found")
         
-        if current_document["data"] is not None and current_document.get("filename") == filename:
+        doc = await get_current_document()
+        if doc["data"] is not None and doc.get("filename") == filename:
             raise HTTPException(
                 status_code=400, 
                 detail=f"Cannot delete '{filename}' - it is currently loaded. Clear the document first."
