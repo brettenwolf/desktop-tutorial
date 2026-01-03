@@ -263,7 +263,7 @@ async def delete_subgroup(subgroup_name: str):
 
 @api_router.get("/subgroups/list")
 async def list_subgroups():
-    subgroups = await db.subgroups.find({}, {"_id": 0}).to_list(length=None)
+    subgroups = await db.subgroups.find({}, {"_id": 0}).to_list(100)
     return {"subgroups": subgroups}
 
 
