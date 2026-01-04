@@ -49,9 +49,7 @@ TIMEZONE_OFFSET = -6  # CST (Central Standard Time)
 
 # Cache version for forcing fresh image loads (stored in MongoDB for persistence)
 # Note: Document data is now stored in MongoDB collection 'current_document' for production reliability
-
-# Daily reset tracking
-last_reset_date = None
+# Note: Daily reset date is now stored in MongoDB collection 'app_state' for multi-pod consistency
 
 # WebRTC Signaling - Note: Signals are now stored in MongoDB for production reliability
 # The webrtc_signals collection will be used instead of in-memory storage
