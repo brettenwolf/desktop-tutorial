@@ -431,11 +431,21 @@ const AdminPage = () => {
       const response = await fetch(`${API}/document/clear`, { method: 'DELETE' });
       if (response.ok) {
         showToast('Document cleared successfully', 'success');
-        await fetchDocumentStatus();
-        await fetchLibraryFiles();
+        // Refresh data - don't let errors here affect the success message
+        try {
+          await fetchDocumentStatus();
+          await fetchLibraryFiles();
+        } catch (refreshError) {
+          console.log('Refresh after clear:', refreshError);
+        }
       } else {
-        const error = await response.json();
-        showToast(error.detail || 'Clear failed', 'error');
+        const errorText = await response.text();
+        try {
+          const error = JSON.parse(errorText);
+          showToast(error.detail || 'Clear failed', 'error');
+        } catch {
+          showToast('Clear failed', 'error');
+        }
       }
     } catch (error) {
       console.error('Error clearing document:', error);
