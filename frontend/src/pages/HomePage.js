@@ -636,9 +636,17 @@ const HomePage = () => {
       // Reset wasPosition2 now that we've used it
       setWasPosition2(false);
       
-      // Browser notification (not supported on iOS)
-      if (typeof Notification !== 'undefined' && Notification.permission === 'granted') {
-        new Notification("It's Your Turn!", { body: 'You are now at position 1. Please select an action.' });
+      // Browser notification (not supported on iOS Safari)
+      try {
+        if (typeof Notification !== 'undefined' && 
+            'Notification' in window && 
+            Notification.permission === 'granted' &&
+            !(/iPad|iPhone|iPod/.test(navigator.userAgent))) {
+          new Notification("It's Your Turn!", { body: 'You are now at position 1. Please select an action.' });
+        }
+      } catch (e) {
+        // Notification not supported on this device/browser
+        console.log('Notifications not supported:', e.message);
       }
     } else if (!queueStatus?.isPosition1 && wasPosition1) {
       // No longer Position 1 (moved to back of queue or left)
