@@ -1023,18 +1023,55 @@ logger = logging.getLogger(__name__)
 
 cleanup_task = None
 signal_cleanup_task = None
+inactive_participant_cleanup_task = None
+
+# Configuration for inactive participant cleanup
+INACTIVE_TIMEOUT_SECONDS = 30  # Remove participants inactive for 30 seconds
 
 @app.on_event("startup")
 async def startup_cleanup_task():
-    global cleanup_task, signal_cleanup_task
+    global cleanup_task, signal_cleanup_task, inactive_participant_cleanup_task
     
     # Create index for WebRTC signals for faster queries
     await db.webrtc_signals.create_index("toSessionId")
     await db.webrtc_signals.create_index("timestamp")
     
+    # Create index for queue lastActive for faster cleanup queries
+    await db.queue.create_index("lastActive")
+    
     cleanup_task = asyncio.create_task(auto_cleanup_inactive_subgroups())
     signal_cleanup_task = asyncio.create_task(auto_cleanup_old_signals())
-    logger.info("Started auto-cleanup background task")
+    inactive_participant_cleanup_task = asyncio.create_task(auto_cleanup_inactive_participants())
+    logger.info("Started auto-cleanup background tasks")
+
+async def auto_cleanup_inactive_participants():
+    """Remove participants who haven't sent a heartbeat in INACTIVE_TIMEOUT_SECONDS"""
+    while True:
+        try:
+            cutoff_time = datetime.utcnow() - timedelta(seconds=INACTIVE_TIMEOUT_SECONDS)
+            
+            # Find inactive participants
+            inactive = await db.queue.find({"lastActive": {"$lt": cutoff_time}}).to_list(100)
+            
+            if inactive:
+                inactive_names = [p.get("name", "Unknown") for p in inactive]
+                inactive_ids = [p.get("sessionId") for p in inactive]
+                
+                # Remove inactive participants
+                result = await db.queue.delete_many({"lastActive": {"$lt": cutoff_time}})
+                
+                if result.deleted_count > 0:
+                    logger.info(f"Removed {result.deleted_count} inactive participants: {inactive_names}")
+                    
+                    # Also clean up their WebRTC signals
+                    for session_id in inactive_ids:
+                        if session_id:
+                            await db.webrtc_signals.delete_many({"fromSessionId": session_id})
+                            await db.webrtc_signals.delete_many({"toSessionId": session_id})
+        except Exception as e:
+            logger.error(f"Error cleaning up inactive participants: {e}")
+        
+        await asyncio.sleep(10)  # Check every 10 seconds
 
 async def auto_cleanup_old_signals():
     """Clean up WebRTC signals older than 60 seconds"""
