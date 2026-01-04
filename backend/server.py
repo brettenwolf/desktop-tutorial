@@ -1087,7 +1087,7 @@ async def auto_cleanup_old_signals():
 
 @app.on_event("shutdown")
 async def shutdown_db_client():
-    global cleanup_task, signal_cleanup_task
+    global cleanup_task, signal_cleanup_task, inactive_participant_cleanup_task
     if cleanup_task:
         cleanup_task.cancel()
         try:
@@ -1098,6 +1098,12 @@ async def shutdown_db_client():
         signal_cleanup_task.cancel()
         try:
             await signal_cleanup_task
+        except asyncio.CancelledError:
+            pass
+    if inactive_participant_cleanup_task:
+        inactive_participant_cleanup_task.cancel()
+        try:
+            await inactive_participant_cleanup_task
         except asyncio.CancelledError:
             pass
     client.close()
