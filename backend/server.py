@@ -393,6 +393,19 @@ async def leave_queue(sessionId: str):
     
     return {"message": "You have left the queue"}
 
+@api_router.post("/queue/heartbeat/{sessionId}")
+async def queue_heartbeat(sessionId: str):
+    """Lightweight heartbeat endpoint to keep participant active in queue"""
+    result = await db.queue.update_one(
+        {"sessionId": sessionId},
+        {"$set": {"lastActive": datetime.utcnow()}}
+    )
+    
+    if result.matched_count == 0:
+        raise HTTPException(status_code=404, detail="Participant not found in queue")
+    
+    return {"success": True, "timestamp": datetime.utcnow().isoformat()}
+
 @api_router.delete("/queue/remove/{sessionId}")
 async def remove_participant(sessionId: str):
     """Admin endpoint to remove any participant from the queue"""
