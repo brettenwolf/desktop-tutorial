@@ -230,7 +230,7 @@ const PDFViewer = ({ backendUrl }) => {
           }}
         >
           {loadedPages.map((pageUrl, index) => (
-            <div key={index} className="relative w-full">
+            <div key={index} className="relative w-full" style={{ marginBottom: '16px' }}>
               {/* Page number label */}
               <div className="absolute -top-2 left-1/2 transform -translate-x-1/2 -translate-y-full bg-white/20 px-2 sm:px-3 py-0.5 sm:py-1 rounded-t-lg text-xs text-white/70 z-10">
                 Page {index + 1}
@@ -240,11 +240,12 @@ const PDFViewer = ({ backendUrl }) => {
                 <img
                   src={pageUrl}
                   alt={`Page ${index + 1}`}
-                  className="shadow-2xl rounded-lg mx-auto"
+                  className="shadow-2xl mx-auto"
                   style={{
                     width: fitMode === 'width' ? '100%' : 'auto',
                     maxWidth: fitMode === 'width' ? '800px' : `${scale * 800}px`,
                     height: 'auto',
+                    display: 'block',
                     transform: fitMode === 'custom' ? `scale(${scale})` : 'none',
                     transformOrigin: 'top center',
                   }}
@@ -252,7 +253,7 @@ const PDFViewer = ({ backendUrl }) => {
                   data-testid={`pdf-page-${index}`}
                 />
               ) : (
-                <div className="w-full max-w-[800px] aspect-[3/4] bg-white/5 rounded-lg flex items-center justify-center mx-auto">
+                <div className="w-full max-w-[800px] bg-white/5 flex items-center justify-center mx-auto" style={{ aspectRatio: '612/792' }}>
                   <Loader2 size={32} className="animate-spin text-blue-500" />
                 </div>
               )}
