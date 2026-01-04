@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { ArrowLeft, Upload, Trash2, RefreshCw, Users, FileText, FolderOpen, Plus, Loader2, UserMinus } from 'lucide-react';
+import { ArrowLeft, Upload, Trash2, RefreshCw, Users, FileText, FolderOpen, Plus, Loader2, UserMinus, X } from 'lucide-react';
 import Toast from '../components/Toast';
 
 const BACKEND_URL = process.env.REACT_APP_BACKEND_URL;
