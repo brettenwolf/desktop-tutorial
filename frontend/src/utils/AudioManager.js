@@ -58,6 +58,7 @@ class AudioManager {
   async initialize(startMuted = true) {
     try {
       this.reportStatus('initializing');
+      console.log('AudioManager: Starting initialization, isIOS:', this.isIOS);
       
       // Check if WebRTC is supported
       if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
@@ -67,13 +68,19 @@ class AudioManager {
       }
 
       // Create AudioContext for iOS compatibility
-      const AudioContextClass = window.AudioContext || window.webkitAudioContext;
-      if (AudioContextClass) {
-        this.audioContext = new AudioContextClass();
-        // iOS requires AudioContext to be resumed after user interaction
-        if (this.audioContext.state === 'suspended') {
-          await this.audioContext.resume();
+      try {
+        const AudioContextClass = window.AudioContext || window.webkitAudioContext;
+        if (AudioContextClass) {
+          this.audioContext = new AudioContextClass();
+          console.log('AudioManager: AudioContext created, state:', this.audioContext.state);
+          // iOS requires AudioContext to be resumed after user interaction
+          if (this.audioContext.state === 'suspended') {
+            await this.audioContext.resume();
+            console.log('AudioManager: AudioContext resumed');
+          }
         }
+      } catch (audioCtxError) {
+        console.log('AudioManager: AudioContext error (non-fatal):', audioCtxError);
       }
 
       // Request microphone access with iOS-compatible constraints
@@ -88,11 +95,14 @@ class AudioManager {
 
       // iOS Safari/Chrome sometimes needs simpler constraints
       if (this.isIOS) {
+        console.log('AudioManager: Using simplified iOS constraints');
         constraints.audio = true;
       }
 
       this.reportStatus('requesting_mic');
+      console.log('AudioManager: Requesting microphone access...');
       this.localStream = await navigator.mediaDevices.getUserMedia(constraints);
+      console.log('AudioManager: Microphone access granted');
 
       // Set initial mute state
       this.isMuted = startMuted;
