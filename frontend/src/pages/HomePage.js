@@ -137,6 +137,9 @@ const HomePage = () => {
       localStorage.setItem('sessionId', data.sessionId);
       localStorage.setItem('userName', name.trim());
       
+      // Start heartbeat to keep connection alive
+      startHeartbeat(data.sessionId);
+      
       const statusData = await fetchQueueStatus(data.sessionId);
       
       if (selectedSubGroup && statusData) {
@@ -147,6 +150,33 @@ const HomePage = () => {
       showToast(error.message || 'Failed to join queue', 'error');
     } finally {
       setLoading(false);
+    }
+  };
+
+  // Heartbeat to keep participant active in queue
+  const startHeartbeat = (sid) => {
+    // Clear any existing heartbeat
+    if (heartbeatInterval.current) {
+      clearInterval(heartbeatInterval.current);
+    }
+    
+    // Send heartbeat every 10 seconds
+    heartbeatInterval.current = setInterval(async () => {
+      try {
+        await fetch(`${API}/queue/heartbeat/${sid}`, { method: 'POST' });
+      } catch (error) {
+        console.log('Heartbeat failed:', error);
+      }
+    }, 10000);
+    
+    // Also send immediately
+    fetch(`${API}/queue/heartbeat/${sid}`, { method: 'POST' }).catch(() => {});
+  };
+
+  const stopHeartbeat = () => {
+    if (heartbeatInterval.current) {
+      clearInterval(heartbeatInterval.current);
+      heartbeatInterval.current = null;
     }
   };
 
