@@ -142,11 +142,17 @@ const HomePage = () => {
       
       const statusData = await fetchQueueStatus(data.sessionId);
       
+      console.log('Join queue - selectedSubGroup:', selectedSubGroup, 'statusData:', statusData);
+      
       if (selectedSubGroup && statusData) {
         const shouldStartMuted = !statusData.isPosition1;
+        console.log('Calling initializeAudio with shouldStartMuted:', shouldStartMuted);
         await initializeAudio(data.sessionId, selectedSubGroup, shouldStartMuted);
+      } else {
+        console.log('Skipping audio init - selectedSubGroup:', selectedSubGroup, 'statusData:', !!statusData);
       }
     } catch (error) {
+      console.error('Join queue error:', error);
       showToast(error.message || 'Failed to join queue', 'error');
     } finally {
       setLoading(false);
