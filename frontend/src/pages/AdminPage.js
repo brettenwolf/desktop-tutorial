@@ -425,6 +425,24 @@ const AdminPage = () => {
     }
   };
 
+  // Clear current document
+  const handleClearDocument = async () => {
+    try {
+      const response = await fetch(`${API}/document/clear`, { method: 'DELETE' });
+      if (response.ok) {
+        showToast('Document cleared successfully', 'success');
+        await fetchDocumentStatus();
+        await fetchLibraryFiles();
+      } else {
+        const error = await response.json();
+        showToast(error.detail || 'Clear failed', 'error');
+      }
+    } catch (error) {
+      console.error('Error clearing document:', error);
+      showToast('Clear failed', 'error');
+    }
+  };
+
   // Force reload document
   const handleForceReload = async () => {
     setReloading(true);
