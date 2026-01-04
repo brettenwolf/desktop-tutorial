@@ -354,6 +354,11 @@ const HomePage = () => {
   const startPolling = () => {
     if (pollingInterval.current) clearInterval(pollingInterval.current);
     
+    // Also start heartbeat when polling starts
+    if (sessionId) {
+      startHeartbeat(sessionId);
+    }
+    
     pollingInterval.current = setInterval(() => {
       fetchQueueStatus();
     }, 750);
