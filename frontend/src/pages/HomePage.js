@@ -690,8 +690,16 @@ const HomePage = () => {
 
   // Request notification permission (not supported on iOS)
   useEffect(() => {
-    if (typeof Notification !== 'undefined' && 'Notification' in window && Notification.permission === 'default') {
-      Notification.requestPermission();
+    try {
+      if (typeof Notification !== 'undefined' && 
+          'Notification' in window && 
+          Notification.permission === 'default' &&
+          !(/iPad|iPhone|iPod/.test(navigator.userAgent))) {
+        Notification.requestPermission();
+      }
+    } catch (e) {
+      // Notification not supported
+      console.log('Notification permission request not supported');
     }
   }, []);
 
