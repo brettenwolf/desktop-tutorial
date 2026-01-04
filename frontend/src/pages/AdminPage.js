@@ -532,10 +532,19 @@ const AdminPage = () => {
           </h3>
           <div>
             {documentStatus.loaded ? (
-              <>
-                <p className="font-medium text-green-400">{documentStatus.filename}</p>
-                <p className="text-sm text-white/70">Currently loaded</p>
-              </>
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="font-medium text-green-400">{documentStatus.filename}</p>
+                  <p className="text-sm text-white/70">Currently loaded</p>
+                </div>
+                <button
+                  onClick={handleClearDocument}
+                  className="btn-secondary text-sm py-2 px-4 flex items-center gap-2 text-orange-400 border-orange-500/50 hover:bg-orange-500/20"
+                >
+                  <X size={16} />
+                  Clear
+                </button>
+              </div>
             ) : (
               <p className="text-white/70">No document loaded</p>
             )}
