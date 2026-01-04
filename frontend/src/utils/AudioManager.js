@@ -120,8 +120,18 @@ class AudioManager {
       console.log(`AudioManager initialized for sub-group: ${this.subGroup} (iOS: ${this.isIOS})`);
       return true;
     } catch (error) {
-      console.error('Error initializing audio:', error);
-      this.reportStatus('mic_denied');
+      console.error('Error initializing audio:', error.name, error.message);
+      
+      // Provide more specific status based on error type
+      if (error.name === 'NotAllowedError' || error.name === 'PermissionDeniedError') {
+        this.reportStatus('mic_denied');
+      } else if (error.name === 'NotFoundError' || error.name === 'DevicesNotFoundError') {
+        this.reportStatus('mic_not_found');
+      } else if (error.name === 'NotReadableError' || error.name === 'TrackStartError') {
+        this.reportStatus('mic_in_use');
+      } else {
+        this.reportStatus('mic_denied');
+      }
       return false;
     }
   }
