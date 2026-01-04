@@ -1052,10 +1052,91 @@ async def startup_cleanup_task():
     # Create index for queue lastActive for faster cleanup queries
     await db.queue.create_index("lastActive")
     
+    # Auto-load a PDF on startup if none is loaded
+    await ensure_document_loaded()
+    
     cleanup_task = asyncio.create_task(auto_cleanup_inactive_subgroups())
     signal_cleanup_task = asyncio.create_task(auto_cleanup_old_signals())
     inactive_participant_cleanup_task = asyncio.create_task(auto_cleanup_inactive_participants())
     logger.info("Started auto-cleanup background tasks")
+
+async def ensure_document_loaded():
+    """Ensure a document is loaded on startup - either today's dated file or a random one"""
+    try:
+        doc = await get_current_document()
+        
+        if doc["data"] is not None:
+            logger.info(f"Document already loaded on startup: {doc.get('filename')}")
+            return
+        
+        # No document loaded - auto-load one
+        logger.info("No document loaded on startup, auto-loading...")
+        
+        cst_time = datetime.utcnow() + timedelta(hours=TIMEZONE_OFFSET)
+        today = cst_time.strftime("%m%d%Y")
+        pdf_folder = Path(__file__).parent / "pdfs-github"
+        
+        # Check for today's dated file first
+        matching_files = list(pdf_folder.glob(f"{today}_*.pdf"))
+        
+        if matching_files:
+            pdf_file = matching_files[0]
+            logger.info(f"Found today's PDF: {pdf_file.name}")
+        else:
+            # Fall back to Random folder
+            random_pdf_cache = await get_random_pdf_cache()
+            
+            if today in random_pdf_cache:
+                # Use cached random selection for today
+                cached_filename = random_pdf_cache[today]
+                random_folder = pdf_folder / "Random"
+                pdf_file = random_folder / cached_filename
+                
+                if not pdf_file.exists():
+                    logger.warning(f"Cached random PDF no longer exists: {cached_filename}")
+                    del random_pdf_cache[today]
+                    await set_random_pdf_cache(random_pdf_cache)
+                    pdf_file = None
+                else:
+                    logger.info(f"Using cached random PDF for {today}: {cached_filename}")
+            else:
+                pdf_file = None
+            
+            if pdf_file is None:
+                # Select a new random PDF
+                import random
+                random_folder = pdf_folder / "Random"
+                if random_folder.exists():
+                    random_files = list(random_folder.glob("*.pdf"))
+                    if random_files:
+                        pdf_file = random.choice(random_files)
+                        random_pdf_cache[today] = pdf_file.name
+                        await set_random_pdf_cache(random_pdf_cache)
+                        logger.info(f"Selected new random PDF for {today}: {pdf_file.name}")
+                    else:
+                        logger.warning("No PDFs found in Random folder")
+                        return
+                else:
+                    logger.warning("Random folder does not exist")
+                    return
+        
+        # Load the PDF
+        with open(pdf_file, 'rb') as f:
+            content = f.read()
+        
+        encoded_content = base64.b64encode(content).decode('utf-8')
+        
+        await set_current_document(
+            data=encoded_content,
+            filename=pdf_file.name,
+            contentType="application/pdf",
+            loaderSessionId=None
+        )
+        
+        logger.info(f"Startup auto-loaded PDF: {pdf_file.name}")
+        
+    except Exception as e:
+        logger.error(f"Error during startup document load: {e}")
 
 async def auto_cleanup_inactive_participants():
     """Remove participants who haven't sent a heartbeat in INACTIVE_TIMEOUT_SECONDS"""
