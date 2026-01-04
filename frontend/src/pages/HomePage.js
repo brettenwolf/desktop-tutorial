@@ -682,6 +682,15 @@ const HomePage = () => {
     }
   }, []);
 
+  // Cleanup on unmount
+  useEffect(() => {
+    return () => {
+      stopHeartbeat();
+      if (pollingInterval.current) clearInterval(pollingInterval.current);
+      if (documentPollingInterval.current) clearInterval(documentPollingInterval.current);
+    };
+  }, []);
+
   // Render welcome screen
   if (!userRole) {
     return (
