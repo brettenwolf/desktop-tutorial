@@ -428,6 +428,7 @@ const HomePage = () => {
       if (pollingInterval.current) clearInterval(pollingInterval.current);
       if (documentPollingInterval.current) clearInterval(documentPollingInterval.current);
       clearPosition2Timer();
+      stopHeartbeat();
 
       await fetch(`${API}/queue/leave/${sessionId}`, { method: 'DELETE' });
 
