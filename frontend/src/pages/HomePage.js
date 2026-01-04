@@ -66,6 +66,7 @@ const HomePage = () => {
   const documentPollingInterval = useRef(null);
   const position2TimerInterval = useRef(null);
   const position2TimeoutRef = useRef(null);
+  const heartbeatInterval = useRef(null);
 
   // Toast helper
   const showToast = (message, type = 'info') => {
