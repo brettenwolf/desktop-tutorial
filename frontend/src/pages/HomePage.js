@@ -957,6 +957,12 @@ const HomePage = () => {
         return { text: 'Mic access...', color: 'text-blue-400', bg: 'bg-blue-500/20' };
       case 'mic_denied':
         return { text: 'Mic denied', color: 'text-red-400', bg: 'bg-red-500/20' };
+      case 'mic_not_found':
+        return { text: 'No mic', color: 'text-red-400', bg: 'bg-red-500/20' };
+      case 'mic_in_use':
+        return { text: 'Mic busy', color: 'text-red-400', bg: 'bg-red-500/20' };
+      case 'unsupported':
+        return { text: 'Not supported', color: 'text-red-400', bg: 'bg-red-500/20' };
       case 'ice_failed':
       case 'connection_failed':
         return { text: 'Conn. failed', color: 'text-orange-400', bg: 'bg-orange-500/20' };
