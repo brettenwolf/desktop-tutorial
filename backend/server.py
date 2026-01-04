@@ -108,13 +108,27 @@ async def set_random_pdf_cache(cache):
         upsert=True
     )
 
+async def get_last_reset_date():
+    """Get last reset date from MongoDB"""
+    doc = await db.app_state.find_one({"_id": "daily_reset"})
+    return doc.get("lastResetDate") if doc else None
+
+async def set_last_reset_date(date_str):
+    """Set last reset date in MongoDB"""
+    await db.app_state.update_one(
+        {"_id": "daily_reset"},
+        {"$set": {"lastResetDate": date_str, "updatedAt": datetime.utcnow().isoformat()}},
+        upsert=True
+    )
+
 
 async def check_and_perform_daily_reset():
     """Check if we need to perform a daily reset based on CST date"""
-    global last_reset_date
-    
     cst_time = datetime.utcnow() + timedelta(hours=TIMEZONE_OFFSET)
     today = cst_time.strftime("%Y-%m-%d")
+    
+    # Get last reset date from MongoDB (shared across all pods)
+    last_reset_date = await get_last_reset_date()
     
     if last_reset_date != today:
         logger.info(f"Performing daily reset. Last reset: {last_reset_date}, Today: {today}")
