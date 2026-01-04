@@ -145,7 +145,9 @@ async def check_and_perform_daily_reset():
         # Clear all queues
         await db.queue.delete_many({})
         
-        last_reset_date = today
+        # Store the reset date in MongoDB (shared across all pods)
+        await set_last_reset_date(today)
+        
         random_pdf_cache = await get_random_pdf_cache()
         logger.info(f"Daily reset complete. Random PDF cache preserved: {list(random_pdf_cache.keys())}")
         return True
