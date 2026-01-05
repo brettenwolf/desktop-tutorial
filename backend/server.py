@@ -126,7 +126,18 @@ async def set_last_reset_date(date_str):
 
 
 async def check_and_perform_daily_reset():
-    """Check if we need to perform a daily reset based on CST date"""
+    """
+    Daily reset - runs once per day (CST timezone)
+    
+    What it does:
+    - Clears all PARTICIPANTS from queues (people waiting to read)
+    - Loads the day's document (dated file from pdfs-github/ or random from Random/)
+    - Clears page cache for fresh rendering
+    
+    What it does NOT do:
+    - Does NOT delete subgroups - they persist forever until admin deletes them
+    - Does NOT affect the random PDF cache (same random PDF used all day)
+    """
     cst_time = datetime.utcnow() + timedelta(hours=TIMEZONE_OFFSET)
     today = cst_time.strftime("%Y-%m-%d")
     
@@ -136,25 +147,26 @@ async def check_and_perform_daily_reset():
     if last_reset_date != today:
         logger.info(f"Performing daily reset. Last reset: {last_reset_date}, Today: {today}")
         
-        # Clear document in MongoDB
+        # Clear document in MongoDB (will be reloaded below)
         await set_current_document(
             data=None,
             filename=None,
             contentType=None,
             loaderSessionId=None,
-            increment_cache=True
+            increment_cache=True  # Clears page cache
         )
         
-        # Clear all queues
-        await db.queue.delete_many({})
+        # Clear all PARTICIPANTS from queues (NOT subgroups - those persist)
+        result = await db.queue.delete_many({})
+        logger.info(f"Cleared {result.deleted_count} participants from queues")
         
         # Store the reset date in MongoDB (shared across all pods)
         await set_last_reset_date(today)
         
         random_pdf_cache = await get_random_pdf_cache()
-        logger.info(f"Daily reset complete. Random PDF cache preserved: {list(random_pdf_cache.keys())}")
+        logger.info(f"Daily reset complete. Subgroups preserved. Random PDF cache: {list(random_pdf_cache.keys())}")
         
-        # Auto-load a new document immediately after reset
+        # Auto-load the day's document immediately after reset
         logger.info("Auto-loading document after daily reset...")
         await ensure_document_loaded()
         
