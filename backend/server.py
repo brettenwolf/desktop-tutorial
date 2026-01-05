@@ -153,6 +153,11 @@ async def check_and_perform_daily_reset():
         
         random_pdf_cache = await get_random_pdf_cache()
         logger.info(f"Daily reset complete. Random PDF cache preserved: {list(random_pdf_cache.keys())}")
+        
+        # Auto-load a new document immediately after reset
+        logger.info("Auto-loading document after daily reset...")
+        await ensure_document_loaded()
+        
         return True
     return False
 
