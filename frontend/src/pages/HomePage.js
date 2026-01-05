@@ -1216,7 +1216,10 @@ const HomePage = () => {
       {/* Scrollable PDF Viewer Area */}
       <div className="flex-1 overflow-y-auto">
         {documentStatus.loaded && documentData ? (
-          <PDFViewer backendUrl={BACKEND_URL} />
+          <PDFViewer 
+            backendUrl={BACKEND_URL} 
+            onFirstPageLoaded={() => setFirstPageReady(true)}
+          />
         ) : (
           <div className="flex items-center justify-center h-full min-h-[200px] sm:min-h-[400px]">
             <div className="text-center">
