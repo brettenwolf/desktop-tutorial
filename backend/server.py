@@ -80,6 +80,9 @@ async def set_current_document(data=None, filename=None, contentType=None, loade
     cache_version = current.get("cacheVersion", 0)
     if increment_cache:
         cache_version += 1
+        # Clear old page cache when document changes
+        await db.page_cache.delete_many({"cache_version": {"$lt": cache_version}})
+        logger.info(f"Cleared old page cache, new cache version: {cache_version}")
     
     await db.current_document.update_one(
         {"_id": "current"},
