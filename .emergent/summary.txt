@@ -1,0 +1,167 @@
+<analysis>**original_problem_statement:**
+The user's initial request was to build a full-stack web application for a mobile reading group concept. The application features a participant queue system, an admin portal (PIN: ), PDF management (upload, selection, deletion), and peer-to-peer WebRTC audio streaming for participants.
+
+Throughout the session, the user's focus has been on resolving persistent bugs that appear after deployment, primarily related to WebRTC audio on iOS devices and application state consistency (PDF loading, queue state). The user also requested several UI/UX improvements, which have been implemented. The core goal is to achieve a stable, production-ready application that works reliably across different devices (iPhone, laptop, Android) and networks.
+
+**User's preferred language**: English
+
+**what currently exists?**
+A full-stack application with a React frontend and a FastAPI backend. The application's state management has been significantly refactored to use MongoDB instead of in-memory variables to ensure consistency in a multi-pod production environment. This includes state for the currently loaded PDF, WebRTC signaling messages, and the daily reset timer. A heartbeat system has been implemented to automatically remove disconnected or ghost participants from the queue. Despite these fixes, the user is still reporting critical bugs on the deployed application, especially with WebRTC audio on iOS.
+
+**Last working item**:
+- **Last item agent was working**: The user reported that after the latest redeployment, the audio status on an iPhone (Safari) shows Not Supported. The agent was investigating why the browser is failing to detect WebRTC capabilities on iOS.
+- **Status**: IN PROGRESS
+- **Agent Testing Done**: N
+- **Which testing method agent to use?**: Manual testing by the user on the target device (iPhone). The next agent should add extensive console logging to  to capture the state of  and  on the user's device and ask the user to provide these logs.
+- **User Testing Done**: Y (User reported the Not Supported status)
+
+**All Pending/In progress Issue list**:
+-   **Issue 1**: WebRTC audio shows Not Supported on iPhone (Safari) in the deployed application. (P0)
+-   **Issue 2**: General post-deployment instability. Despite major refactoring to use MongoDB for state, the user frequently reports that the PDF fails to load or other features are broken immediately after a new deployment, requiring manual intervention or another fix cycle. (P1)
+-   **Issue 3**: The PDF viewer on a laptop loads pages significantly slower than on an iPhone. (P2)
+
+**Issues Detail**:
+-   **Issue 1: WebRTC shows Not Supported on iPhone (P0)**
+    -   **Attempted fixes**: The agent has tried numerous fixes for WebRTC: updating TURN credentials, adding backup TURN servers, moving signaling logic to MongoDB, and adding robust connection status indicators. The most recent attempt involved adding more logging to diagnose why an iPhone with correct permissions would show Offline or Not Supported.
+    -   **Next debug checklist**:
+        1.  Investigate why  or  might be unavailable or  on iOS Safari, even with permissions granted.
+        2.  Edit  to add more robust WebRTC support detection. Consider checking for  as a fallback.
+        3.  Add detailed logging at the beginning of the  function in  to log the values of  and .
+        4.  Update the  function's error handling to report a more specific error than just not_supported if possible.
+        5.  Ask the user to test the *preview* URL and provide console logs from the iPhone's Safari developer tools to diagnose the issue.
+    -   **Why fix this issue and what will be achieved with the fix?**: This is a critical, core feature of the application that is completely non-functional on a primary target platform (iOS).
+    -   **Status**: IN PROGRESS
+    -   **Is recurring issue?**: Y
+    -   **Should Test frontend/backend/both after fix?**: Both
+    -   **Blocked on other issue**: None
+
+-   **Issue 2: Post-Deployment Instability (P1)**
+    -   **Attempted fixes**: The agent refactored the entire backend state management from in-memory variables to MongoDB collections (, , ). An auto-load function for the document was also added to the backend's startup sequence.
+    -   **Next debug checklist**:
+        1.  Once the WebRTC issue is resolved, perform a thorough verification of the deployment process.
+        2.  After redeploying, immediately test all critical state-dependent features (PDF loading, group creation, queue joining) without any manual intervention.
+        3.  Verify that the backend startup logic correctly loads a document into the  collection in MongoDB on the deployed environment.
+    -   **Why fix this issue and what will be achieved with the fix?**: The application is unusable if it breaks after every deployment. This fix is crucial for the application's stability and the user's confidence in the platform.
+    -   **Status**: IN PROGRESS
+    -   **Is recurring issue?**: Y
+    -   **Should Test frontend/backend/both after fix?**: Both
+    -   **Blocked on other issue**: None
+
+-   **Issue 3: Slow PDF loading on laptop (P2)**
+    -   **Attempted fixes**: None.
+    -   **Next debug checklist**:
+        1.  Use browser developer tools on a laptop to analyze the network waterfall for  requests.
+        2.  Identify if the bottleneck is server response time (), content download time, or frontend rendering.
+        3.  Compare these metrics with the same requests on an iPhone to understand the discrepancy.
+    -   **Why fix this issue and what will be achieved with the fix?**: Improves the user experience on desktop/laptop devices.
+    -   **Status**: NOT STARTED
+    -   **Is recurring issue?**: N
+    -   **Should Test frontend/backend/both after fix?**: Frontend
+
+**In progress Task List**:
+None.
+
+**Upcoming and Future Tasks**
+- **Refactoring (P1)**: The handoff summary noted that  (>1000 lines) and  (monolithic) are significant sources of technical debt. Refactoring them into smaller, manageable modules would improve maintainability and reduce the risk of introducing new bugs.
+- **PDF Viewer Enhancements (P2)**: The user asked if the viewer could reformat PDFs. While this is not possible, the agent could propose adding other viewer enhancements like page navigation controls or thumbnails if the user is interested.
+
+**Completed work in this session**
+- **Production Stability Refactor**: Moved all in-memory application state to MongoDB to ensure consistency across multiple production pods.
+  -  are now stored in a MongoDB collection.
+  -  data is now stored in a MongoDB collection.
+  -  for the daily reset is now stored in the  collection.
+- **Ghost Participant Cleanup**: Implemented a heartbeat system where the frontend pings the backend every 10 seconds. A background task on the backend removes participants who have been inactive for over 30 seconds.
+- **PDF Management Fixes**:
+  - Added a Clear Document button to the Admin Portal so the currently loaded PDF can be unloaded and then deleted.
+  - Fixed a PDF rendering issue where the bottom 2-3 lines of text were cut off.
+  - Implemented an auto-load function on backend startup to ensure a document is always available after deployment.
+- **UI/UX Improvements**:
+  - Fixed a floating 'Reload' button on the Admin page for mobile view.
+  - Updated the info modal on .
+  - Replaced the info icon with a prominent, styled Read Me button.
+- **Bug Fixes**:
+  - Fixed an iOS-specific runtime error (Illegal constructor for ).
+  - Added a user-friendly warning for Mic denied status, guiding users on how to enable permissions in their browser.
+
+**Earlier issues found/mentioned but not fixed**
+- **Issue 1**: The PDF viewer loads pages much slower on a laptop compared to an iPhone. The user mentioned this, but it was not investigated.
+
+**Known issue recurrence from previous fork**
+-   **WebRTC on iOS**: This remains the most critical and persistent issue, evolving from no audio to Conn Failed to Offline and now Not Supported despite numerous fixes.
+-   **Post-Deployment Failures**: A new major recurring issue in this session where the app works in preview but breaks upon deployment due to environment differences (single vs. multi-pod).
+
+**Code Architecture**
+
+
+**Key Technical Concepts**
+-   **Frontend**: React, Tailwind CSS
+-   **Backend**: FastAPI, Motor
+-   **Database**: MongoDB
+-   **Key Architectural Shift**: The application's state management was completely moved from in-memory Python variables in  to persistent MongoDB collections. This is a critical change to support a multi-pod Kubernetes production environment.
+
+**key DB schema**
+-   ****: 
+-   ****: 
+-   ****:  (e.g., )
+-   ****: 
+-   ****: A collection with a single document storing the currently loaded PDF's data ().
+
+**changes in tech stack**
+- No new technologies, but a fundamental change in backend architecture from in-memory state to MongoDB-backed state.
+
+**All files of reference**
+-   : The most heavily modified file. All global in-memory variables were replaced with async calls to MongoDB collections. Contains new background tasks for cleanup.
+-   : Modified to add the heartbeat logic, stop/start polling, and for numerous UI/UX changes and debugging efforts.
+-   : Modified multiple times to add logging, update TURN credentials, and attempt to fix iOS WebRTC issues.
+-   : Modified to add the Clear Document button and its associated logic.
+-   : Modified to fix a visual rendering bug where text was cut off.
+
+**Areas that need refactoring**:
+-   : Remains over 1000 lines and handles too many responsibilities. It needs to be broken down into smaller components.
+-   : Although state management was improved, the file is still a monolith containing all API routes, database logic, and background tasks.
+
+**key api endpoints**
+-    (POST): New endpoint for the frontend to periodically signal that a user is still active.
+-    (POST): New endpoint for the admin to unload the currently active document.
+-    (POST/GET): Endpoints were refactored to use the  MongoDB collection.
+-   All document-related endpoints (e.g., , ) were refactored to use the  MongoDB collection.
+
+**Critical Info for New Agent**
+-   **Production vs. Preview**: The production environment runs on Kubernetes with multiple pods, while preview is a single instance. **Do not use in-memory state for anything that needs to be shared or persistent.** All shared state *must* go into MongoDB. The user is highly sensitive to issues that appear only after deployment.
+-   **WebRTC on iOS is the main blocker.** The latest error is Not Supported on Safari. Your first priority should be to diagnose this by adding better logging and asking the user for logs from their device. Do not attempt random fixes.
+-   **User Testing is Key**: The most critical bugs (iOS audio, post-deployment failures) only surface through user testing on real devices and in the deployed environment. You must rely on the user to be your testing partner for these issues.
+
+**documents and test reports created in this job**
+None.
+
+**Last 10 User Messages and any pending HUMAN messages**
+1.  **User**: Redeployed and now the laptop shows Ready but the iPhone shows Not Supported. (PENDING)
+2.  **User**: States they are troubleshooting the deployed app, not the preview URL. (Clarified)
+3.  **User**: Reports no audio and a crash on Finish Reading on the deployed app. (Agent identified this was due to un-deployed fixes).
+4.  **User**: Asks why they are being directed to the preview URL for troubleshooting the deployed app. (Agent explained fixes are in preview first).
+5.  **User**: Reports that on the iPhone/Safari, no microphone prompt appears, and the status is 'Offline'. (Agent added more logging to diagnose).
+6.  **User**: After deployment, reports that Groups are missing from the Admin Portal. (Agent verified with a screenshot that groups were present, suggesting user was on the wrong URL).
+7.  **User**: Asks for the URL to test on another device. (Agent provided preview URL).
+8.  **User**: Reports an Illegal constructor runtime error for  when Finish Reading is clicked. (Fixed by agent).
+9.  **User**: Asks if the PDF viewer can reformat random PDFs. (Agent explained it's a viewer only).
+10. **User**: Confirms the Clear button in the Admin Portal now works correctly. (Resolved).
+
+**Project Health Check:**
+-   **Broken**: WebRTC audio functionality on the deployed application is not working, especially on iOS devices where it currently shows Not Supported.
+-   **Mocked**: None.
+
+**3rd Party Integrations**
+None.
+
+**Testing status**
+-   **Testing agent used after significant changes**: NO
+-   **Troubleshoot agent used after agent stuck in loop**: NO
+-   **Test files created**: None
+-   **Known regressions**: WebRTC audio functionality on iOS has been a persistent failure point, with symptoms changing but the core problem remaining.
+
+**Credentials to test flow:**
+-   **Admin Portal PIN**: 
+
+**What agent forgot to execute**
+- The agent has not investigated the user's report that the PDF viewer is significantly slower on a laptop than on an iPhone.
+- The long-standing technical debt of refactoring the monolithic  and  files has not been addressed.</analysis>
