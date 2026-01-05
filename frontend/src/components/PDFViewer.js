@@ -1,7 +1,7 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { ZoomIn, ZoomOut, RotateCw, Loader2, Maximize2, Minimize2 } from 'lucide-react';
 
-const PDFViewer = ({ backendUrl }) => {
+const PDFViewer = ({ backendUrl, onFirstPageLoaded }) => {
   const [pageCount, setPageCount] = useState(0);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
@@ -9,7 +9,10 @@ const PDFViewer = ({ backendUrl }) => {
   const [fitMode, setFitMode] = useState('width'); // 'width', 'page', or 'custom'
   const [loadedPages, setLoadedPages] = useState([]);
   const [loadingPages, setLoadingPages] = useState(new Set());
+  const [visibleRange, setVisibleRange] = useState({ start: 0, end: 3 }); // Only load visible + buffer
   const containerRef = useRef(null);
+  const pageRefs = useRef([]);
+  const firstPageLoadedRef = useRef(false);
 
   const API = `${backendUrl}/api`;
 
@@ -17,8 +20,10 @@ const PDFViewer = ({ backendUrl }) => {
   useEffect(() => {
     let retryCount = 0;
     const maxRetries = 5;
+    let cancelled = false;
     
     const fetchPages = async () => {
+      if (cancelled) return;
       try {
         setLoading(true);
         setError(null);
@@ -28,52 +33,90 @@ const PDFViewer = ({ backendUrl }) => {
           setPageCount(data.pageCount);
           // Initialize loaded pages array
           setLoadedPages(new Array(data.pageCount).fill(null));
+          setLoading(false);
         } else if (response.status === 404 && retryCount < maxRetries) {
           // Document not loaded yet, retry after delay
           retryCount++;
           console.log(`Document not ready, retry ${retryCount}/${maxRetries}...`);
           setTimeout(fetchPages, 1000);
-          return; // Don't set loading to false yet
         } else {
           setError('Failed to load document');
+          setLoading(false);
         }
       } catch (err) {
         console.error('Error fetching pages:', err);
         if (retryCount < maxRetries) {
           retryCount++;
           setTimeout(fetchPages, 1000);
-          return;
-        }
-        setError('Failed to load document');
-      } finally {
-        if (retryCount >= maxRetries || error === null) {
+        } else {
+          setError('Failed to load document');
           setLoading(false);
         }
       }
     };
 
     fetchPages();
+    return () => { cancelled = true; };
   }, [API]);
 
-  // Load all pages when page count is known
+  // Load visible pages progressively (first few pages immediately, rest on scroll)
   useEffect(() => {
     if (pageCount > 0) {
-      // Load all pages
-      for (let i = 0; i < pageCount; i++) {
-        loadPage(i);
-      }
+      // Prioritize first 2 pages for immediate display
+      loadPage(0, true); // High priority - first page
+      if (pageCount > 1) loadPage(1, true);
+      
+      // Load remaining visible range pages with slight delay
+      const loadRemainingVisible = () => {
+        for (let i = 2; i < Math.min(pageCount, visibleRange.end + 2); i++) {
+          loadPage(i, false);
+        }
+      };
+      const timer = setTimeout(loadRemainingVisible, 100);
+      return () => clearTimeout(timer);
     }
   }, [pageCount]);
 
-  // Load a single page
-  const loadPage = async (pageIndex) => {
+  // Intersection observer for lazy loading pages as user scrolls
+  useEffect(() => {
+    if (pageCount === 0 || !containerRef.current) return;
+
+    const observer = new IntersectionObserver(
+      (entries) => {
+        entries.forEach((entry) => {
+          if (entry.isIntersecting) {
+            const pageIndex = parseInt(entry.target.dataset.pageIndex, 10);
+            if (!isNaN(pageIndex)) {
+              // Load this page and adjacent pages
+              loadPage(pageIndex, false);
+              if (pageIndex > 0) loadPage(pageIndex - 1, false);
+              if (pageIndex < pageCount - 1) loadPage(pageIndex + 1, false);
+            }
+          }
+        });
+      },
+      { root: containerRef.current, rootMargin: '200px', threshold: 0.1 }
+    );
+
+    // Observe all page placeholders
+    pageRefs.current.forEach((ref) => {
+      if (ref) observer.observe(ref);
+    });
+
+    return () => observer.disconnect();
+  }, [pageCount, loadedPages]);
+
+  // Load a single page with priority support
+  const loadPage = useCallback(async (pageIndex, highPriority = false) => {
     if (loadingPages.has(pageIndex) || loadedPages[pageIndex]) return;
 
     setLoadingPages(prev => new Set([...prev, pageIndex]));
 
     try {
       const timestamp = Date.now();
-      const imageUrl = `${API}/document/page/${pageIndex}?scale=2.0&quality=90&t=${timestamp}`;
+      // Use lower quality for faster initial load, can upgrade later
+      const quality = highPriority ? 85 : 80;
+      const imageUrl = `${API}/document/page/${pageIndex}?scale=2.0&quality=${quality}&t=${timestamp}`;
       
       // Preload the image
       const img = new Image();
@@ -88,6 +131,12 @@ const PDFViewer = ({ backendUrl }) => {
           newSet.delete(pageIndex);
           return newSet;
         });
+        
+        // Signal when first page is loaded
+        if (pageIndex === 0 && !firstPageLoadedRef.current) {
+          firstPageLoadedRef.current = true;
+          if (onFirstPageLoaded) onFirstPageLoaded();
+        }
       };
       img.onerror = () => {
         console.error(`Failed to load page ${pageIndex}`);
@@ -106,7 +155,7 @@ const PDFViewer = ({ backendUrl }) => {
         return newSet;
       });
     }
-  };
+  }, [API, loadingPages, loadedPages, onFirstPageLoaded]);
 
   const zoomIn = () => {
     setFitMode('custom');
@@ -230,7 +279,13 @@ const PDFViewer = ({ backendUrl }) => {
           }}
         >
           {loadedPages.map((pageUrl, index) => (
-            <div key={index} className="relative w-full" style={{ marginBottom: '16px' }}>
+            <div 
+              key={index} 
+              ref={el => pageRefs.current[index] = el}
+              data-page-index={index}
+              className="relative w-full" 
+              style={{ marginBottom: '16px' }}
+            >
               {/* Page number label */}
               <div className="absolute -top-2 left-1/2 transform -translate-x-1/2 -translate-y-full bg-white/20 px-2 sm:px-3 py-0.5 sm:py-1 rounded-t-lg text-xs text-white/70 z-10">
                 Page {index + 1}
@@ -250,6 +305,7 @@ const PDFViewer = ({ backendUrl }) => {
                     transformOrigin: 'top center',
                   }}
                   draggable={false}
+                  loading="lazy"
                   data-testid={`pdf-page-${index}`}
                 />
               ) : (
