@@ -1240,7 +1240,10 @@ async def ensure_general_group_exists():
         logger.info("Created default 'General' subgroup")
 
 async def ensure_document_loaded():
-    """Ensure a document is loaded on startup - either today's dated file or a random one"""
+    """
+    Ensure a document is loaded on startup - either today's dated file or a random one.
+    Checks MongoDB first (for persistence across deployments), then filesystem as fallback.
+    """
     try:
         doc = await get_current_document()
         
@@ -1253,61 +1256,114 @@ async def ensure_document_loaded():
         
         cst_time = datetime.utcnow() + timedelta(hours=TIMEZONE_OFFSET)
         today = cst_time.strftime("%m%d%Y")
-        pdf_folder = Path(__file__).parent / "pdfs-github"
         
-        # Check for today's dated file first
-        matching_files = list(pdf_folder.glob(f"{today}_*.pdf"))
+        pdf_data = None
+        pdf_filename = None
         
-        if matching_files:
-            pdf_file = matching_files[0]
-            logger.info(f"Found today's PDF: {pdf_file.name}")
+        # Step 1: Check MongoDB for today's dated file in upload folder
+        today_pattern = f"^{today}_"
+        mongo_dated_pdf = await db.pdf_library.find_one({
+            "folder": "upload",
+            "filename": {"$regex": today_pattern}
+        })
+        
+        if mongo_dated_pdf:
+            pdf_data = mongo_dated_pdf.get("data")
+            pdf_filename = mongo_dated_pdf.get("filename")
+            logger.info(f"Found today's PDF in MongoDB: {pdf_filename}")
         else:
-            # Fall back to Random folder
-            random_pdf_cache = await get_random_pdf_cache()
+            # Step 2: Check filesystem for today's dated file (backwards compatibility)
+            pdf_folder = Path(__file__).parent / "pdfs-github"
+            matching_files = list(pdf_folder.glob(f"{today}_*.pdf")) if pdf_folder.exists() else []
             
-            if today in random_pdf_cache:
-                # Use cached random selection for today
-                cached_filename = random_pdf_cache[today]
-                random_folder = pdf_folder / "Random"
-                pdf_file = random_folder / cached_filename
-                
-                if not pdf_file.exists():
-                    logger.warning(f"Cached random PDF no longer exists: {cached_filename}")
-                    del random_pdf_cache[today]
-                    await set_random_pdf_cache(random_pdf_cache)
-                    pdf_file = None
-                else:
-                    logger.info(f"Using cached random PDF for {today}: {cached_filename}")
+            if matching_files:
+                pdf_file = matching_files[0]
+                with open(pdf_file, 'rb') as f:
+                    content = f.read()
+                pdf_data = base64.b64encode(content).decode('utf-8')
+                pdf_filename = pdf_file.name
+                logger.info(f"Found today's PDF on filesystem: {pdf_filename}")
             else:
-                pdf_file = None
-            
-            if pdf_file is None:
-                # Select a new random PDF
-                import random
-                random_folder = pdf_folder / "Random"
-                if random_folder.exists():
-                    random_files = list(random_folder.glob("*.pdf"))
-                    if random_files:
-                        pdf_file = random.choice(random_files)
-                        random_pdf_cache[today] = pdf_file.name
-                        await set_random_pdf_cache(random_pdf_cache)
-                        logger.info(f"Selected new random PDF for {today}: {pdf_file.name}")
+                # Step 3: Fall back to Random folder
+                random_pdf_cache = await get_random_pdf_cache()
+                
+                if today in random_pdf_cache:
+                    # Use cached random selection for today
+                    cached_filename = random_pdf_cache[today]
+                    
+                    # Check MongoDB first
+                    mongo_random_pdf = await db.pdf_library.find_one({
+                        "folder": "random",
+                        "filename": cached_filename
+                    })
+                    
+                    if mongo_random_pdf:
+                        pdf_data = mongo_random_pdf.get("data")
+                        pdf_filename = cached_filename
+                        logger.info(f"Using cached random PDF from MongoDB for {today}: {pdf_filename}")
                     else:
-                        logger.warning("No PDFs found in Random folder")
+                        # Check filesystem
+                        random_folder = pdf_folder / "Random"
+                        pdf_file = random_folder / cached_filename
+                        
+                        if pdf_file.exists():
+                            with open(pdf_file, 'rb') as f:
+                                content = f.read()
+                            pdf_data = base64.b64encode(content).decode('utf-8')
+                            pdf_filename = cached_filename
+                            logger.info(f"Using cached random PDF from filesystem for {today}: {pdf_filename}")
+                        else:
+                            logger.warning(f"Cached random PDF no longer exists: {cached_filename}")
+                            del random_pdf_cache[today]
+                            await set_random_pdf_cache(random_pdf_cache)
+                
+                if pdf_data is None:
+                    # Step 4: Select a new random PDF
+                    import random as random_module
+                    
+                    # Get all random PDFs from MongoDB
+                    random_pdfs_mongo = await db.pdf_library.find({"folder": "random"}).to_list(100)
+                    
+                    # Also get from filesystem
+                    random_folder = pdf_folder / "Random" if pdf_folder.exists() else None
+                    random_files_disk = list(random_folder.glob("*.pdf")) if random_folder and random_folder.exists() else []
+                    
+                    # Combine sources
+                    all_random_options = []
+                    for pdf in random_pdfs_mongo:
+                        all_random_options.append({"source": "mongo", "filename": pdf["filename"], "data": pdf.get("data")})
+                    
+                    seen_filenames = {opt["filename"] for opt in all_random_options}
+                    for pdf_file in random_files_disk:
+                        if pdf_file.name not in seen_filenames:
+                            all_random_options.append({"source": "disk", "filename": pdf_file.name, "path": pdf_file})
+                    
+                    if all_random_options:
+                        selected = random_module.choice(all_random_options)
+                        pdf_filename = selected["filename"]
+                        
+                        if selected["source"] == "mongo":
+                            pdf_data = selected["data"]
+                        else:
+                            with open(selected["path"], 'rb') as f:
+                                content = f.read()
+                            pdf_data = base64.b64encode(content).decode('utf-8')
+                        
+                        random_pdf_cache[today] = pdf_filename
+                        await set_random_pdf_cache(random_pdf_cache)
+                        logger.info(f"Selected new random PDF for {today}: {pdf_filename}")
+                    else:
+                        logger.warning("No PDFs found in Random folder (neither MongoDB nor filesystem)")
                         return
-                else:
-                    logger.warning("Random folder does not exist")
-                    return
         
-        # Load the PDF
-        with open(pdf_file, 'rb') as f:
-            content = f.read()
-        
-        encoded_content = base64.b64encode(content).decode('utf-8')
-        
-        await set_current_document(
-            data=encoded_content,
-            filename=pdf_file.name,
+        if pdf_data and pdf_filename:
+            await set_current_document(
+                data=pdf_data,
+                filename=pdf_filename,
+                contentType="application/pdf",
+                loaderSessionId=None
+            )
+            logger.info(f"Startup auto-loaded PDF: {pdf_filename}")
             contentType="application/pdf",
             loaderSessionId=None
         )
