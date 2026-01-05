@@ -1212,6 +1212,9 @@ async def startup_cleanup_task():
     # Create index for page cache
     await db.page_cache.create_index([("cache_key", 1), ("cache_version", 1)])
     
+    # Create index for PDF library
+    await db.pdf_library.create_index([("folder", 1), ("filename", 1)], unique=True)
+    
     # Ensure "General" group always exists
     await ensure_general_group_exists()
     
