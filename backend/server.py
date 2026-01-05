@@ -1090,6 +1090,9 @@ async def startup_cleanup_task():
     # Create index for queue lastActive for faster cleanup queries
     await db.queue.create_index("lastActive")
     
+    # Create index for page cache
+    await db.page_cache.create_index([("cache_key", 1), ("cache_version", 1)])
+    
     # Auto-load a PDF on startup if none is loaded
     await ensure_document_loaded()
     
