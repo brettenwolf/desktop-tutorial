@@ -934,11 +934,17 @@ async def upload_pdf_to_library(file: UploadFile = File(...)):
 
 @api_router.delete("/document/library/{filename}")
 async def delete_pdf_from_library(filename: str):
+    """Delete PDF from library (both MongoDB and filesystem)"""
     try:
+        # Check if file exists in MongoDB
+        existing = await db.pdf_library.find_one({"filename": filename, "folder": "upload"})
+        
+        # Also check filesystem
         pdf_folder = Path(__file__).parent / "pdfs-github"
         file_path = pdf_folder / filename
+        file_exists_on_disk = file_path.exists()
         
-        if not file_path.exists():
+        if not existing and not file_exists_on_disk:
             raise HTTPException(status_code=404, detail=f"File '{filename}' not found")
         
         doc = await get_current_document()
@@ -948,7 +954,14 @@ async def delete_pdf_from_library(filename: str):
                 detail=f"Cannot delete '{filename}' - it is currently loaded. Clear the document first."
             )
         
-        file_path.unlink()
+        # Delete from MongoDB
+        if existing:
+            await db.pdf_library.delete_one({"filename": filename, "folder": "upload"})
+        
+        # Delete from filesystem if exists
+        if file_exists_on_disk:
+            file_path.unlink()
+        
         logger.info(f"Deleted PDF from library: {filename}")
         
         return {
