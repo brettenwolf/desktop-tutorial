@@ -19,7 +19,7 @@ const PDFViewer = ({ backendUrl, onFirstPageLoaded }) => {
   // Fetch page count on mount - with retry logic
   useEffect(() => {
     let retryCount = 0;
-    const maxRetries = 5;
+    const maxRetries = 8; // Increased retries for slower connections
     let cancelled = false;
     
     const fetchPages = async () => {
@@ -27,9 +27,13 @@ const PDFViewer = ({ backendUrl, onFirstPageLoaded }) => {
       try {
         setLoading(true);
         setError(null);
+        console.log(`PDFViewer: Fetching pages from ${API}/document/pages (attempt ${retryCount + 1})`);
         const response = await fetch(`${API}/document/pages`);
+        console.log(`PDFViewer: Response status: ${response.status}`);
+        
         if (response.ok) {
           const data = await response.json();
+          console.log(`PDFViewer: Got ${data.pageCount} pages`);
           setPageCount(data.pageCount);
           // Initialize loaded pages array
           setLoadedPages(new Array(data.pageCount).fill(null));
@@ -37,19 +41,22 @@ const PDFViewer = ({ backendUrl, onFirstPageLoaded }) => {
         } else if (response.status === 404 && retryCount < maxRetries) {
           // Document not loaded yet, retry after delay
           retryCount++;
-          console.log(`Document not ready, retry ${retryCount}/${maxRetries}...`);
-          setTimeout(fetchPages, 1000);
+          console.log(`PDFViewer: Document not ready, retry ${retryCount}/${maxRetries}...`);
+          setTimeout(fetchPages, 1500); // Increased delay between retries
         } else {
-          setError('Failed to load document');
+          const errorText = await response.text().catch(() => 'Unknown error');
+          console.error(`PDFViewer: Failed with status ${response.status}: ${errorText}`);
+          setError(`Failed to load document (${response.status})`);
           setLoading(false);
         }
       } catch (err) {
-        console.error('Error fetching pages:', err);
+        console.error('PDFViewer: Network error fetching pages:', err.message);
         if (retryCount < maxRetries) {
           retryCount++;
-          setTimeout(fetchPages, 1000);
+          console.log(`PDFViewer: Network error, retry ${retryCount}/${maxRetries}...`);
+          setTimeout(fetchPages, 2000); // Longer delay on network errors
         } else {
-          setError('Failed to load document');
+          setError('Failed to load document - please check your connection');
           setLoading(false);
         }
       }
