@@ -1364,11 +1364,6 @@ async def ensure_document_loaded():
                 loaderSessionId=None
             )
             logger.info(f"Startup auto-loaded PDF: {pdf_filename}")
-            contentType="application/pdf",
-            loaderSessionId=None
-        )
-        
-        logger.info(f"Startup auto-loaded PDF: {pdf_file.name}")
         
     except Exception as e:
         logger.error(f"Error during startup document load: {e}")
