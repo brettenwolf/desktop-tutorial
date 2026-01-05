@@ -713,6 +713,28 @@ async def get_document_page(page_number: int, quality: int = 90, scale: float = 
     if not doc["data"]:
         raise HTTPException(status_code=404, detail="No document loaded")
     
+    # Generate cache key based on document, page, quality, scale
+    cache_key = f"{doc.get('filename', 'unknown')}_{page_number}_{quality}_{scale}"
+    cache_version = doc.get("cacheVersion", 0)
+    
+    # Check if we have a cached version (stored in MongoDB for multi-pod consistency)
+    cached_page = await db.page_cache.find_one({
+        "cache_key": cache_key, 
+        "cache_version": cache_version
+    })
+    
+    if cached_page and cached_page.get("image_data"):
+        logger.info(f"Serving cached page {page_number}")
+        return Response(
+            content=base64.b64decode(cached_page["image_data"]),
+            media_type="image/jpeg",
+            headers={
+                "Cache-Control": "public, max-age=3600",
+                "Content-Disposition": f'inline; filename="page_{page_number}.jpg"',
+                "X-Cache": "HIT"
+            }
+        )
+    
     pdf_document = None
     try:
         pdf_bytes = base64.b64decode(doc["data"])
@@ -735,16 +757,18 @@ async def get_document_page(page_number: int, quality: int = 90, scale: float = 
         pdf_document.close()
         pdf_document = None
         
+        # Cache the rendered page (async, don't block response)
+        asyncio.create_task(cache_page(cache_key, cache_version, img_data))
+        
         logger.info(f"Rendered page {page_number} at scale {scale}x, quality {quality}")
         
         return Response(
             content=img_data,
             media_type="image/jpeg",
             headers={
-                "Cache-Control": "no-store, no-cache, must-revalidate, max-age=0",
-                "Pragma": "no-cache",
-                "Expires": "0",
-                "Content-Disposition": f'inline; filename="page_{page_number}.jpg"'
+                "Cache-Control": "public, max-age=3600",
+                "Content-Disposition": f'inline; filename="page_{page_number}.jpg"',
+                "X-Cache": "MISS"
             }
         )
         
@@ -759,6 +783,20 @@ async def get_document_page(page_number: int, quality: int = 90, scale: float = 
                 pdf_document.close()
             except Exception:
                 pass
+
+async def cache_page(cache_key: str, cache_version: int, img_data: bytes):
+    """Cache rendered page to MongoDB (async)"""
+    try:
+        await db.page_cache.update_one(
+            {"cache_key": cache_key, "cache_version": cache_version},
+            {"$set": {
+                "image_data": base64.b64encode(img_data).decode('utf-8'),
+                "created_at": datetime.utcnow().isoformat()
+            }},
+            upsert=True
+        )
+    except Exception as e:
+        logger.error(f"Failed to cache page: {e}")
 
 
 # PDF Library Management
