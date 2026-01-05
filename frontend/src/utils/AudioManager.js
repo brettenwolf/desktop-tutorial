@@ -315,27 +315,16 @@ class AudioManager {
 
   async createPeerConnection(peerId, isInitiator = false) {
     try {
-      // Use multiple STUN/TURN servers for better connectivity
+      // Optimized ICE configuration for faster connections
       const config = {
         iceServers: [
-          // Google STUN servers (most reliable)
+          // Google STUN servers (fastest, most reliable)
           { urls: 'stun:stun.l.google.com:19302' },
           { urls: 'stun:stun1.l.google.com:19302' },
-          { urls: 'stun:stun2.l.google.com:19302' },
-          { urls: 'stun:stun3.l.google.com:19302' },
-          { urls: 'stun:stun4.l.google.com:19302' },
-          // Open Relay TURN servers - multiple protocols for firewall bypass
+          // Open Relay TURN servers - prioritize TCP for better firewall traversal
           {
             urls: [
-              'turn:openrelay.metered.ca:80',
               'turn:openrelay.metered.ca:443',
-            ],
-            username: 'openrelayproject',
-            credential: 'openrelayproject',
-          },
-          {
-            urls: [
-              'turn:openrelay.metered.ca:80?transport=tcp',
               'turn:openrelay.metered.ca:443?transport=tcp',
             ],
             username: 'openrelayproject',
@@ -347,8 +336,10 @@ class AudioManager {
             credential: 'openrelayproject',
           },
         ],
-        iceCandidatePoolSize: 10,
-        iceTransportPolicy: 'all', // Try all candidates (relay + direct)
+        iceCandidatePoolSize: 5, // Reduced from 10 for faster gathering
+        iceTransportPolicy: 'all',
+        bundlePolicy: 'max-bundle', // Bundle audio for efficiency
+        rtcpMuxPolicy: 'require', // Require RTCP mux for faster setup
       };
 
       const pc = new RTCPeerConnection(config);
