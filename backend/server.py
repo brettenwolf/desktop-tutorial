@@ -1125,7 +1125,11 @@ async def startup_cleanup_task():
     logger.info("Started auto-cleanup background tasks")
 
 async def ensure_general_group_exists():
-    """Ensure the 'General' subgroup always exists"""
+    """
+    Ensure the 'General' subgroup always exists as a fallback.
+    This only creates 'General' if no groups exist at all.
+    Admin-created subgroups are ALWAYS preserved.
+    """
     existing = await db.subgroups.find_one({"name": "General"})
     if not existing:
         subgroup_id = str(uuid.uuid4())
