@@ -60,6 +60,9 @@ class AudioManager {
       this.reportStatus('initializing');
       console.log('AudioManager: Starting initialization, isIOS:', this.isIOS);
       
+      // Start peer discovery early (in parallel with mic access)
+      const earlyPeerDiscovery = this.discoverPeersEarly();
+      
       // Polyfill for older browsers
       if (navigator.mediaDevices === undefined) {
         navigator.mediaDevices = {};
@@ -135,9 +138,19 @@ class AudioManager {
       this.isInitialized = true;
       this.reportStatus('ready');
 
-      // Start polling for signals and peers
+      // Wait for early peer discovery to complete
+      const earlyPeers = await earlyPeerDiscovery;
+      
+      // Start signal polling and connect to discovered peers
       this.startSignalPolling();
-      this.connectToPeers();
+      
+      // Connect to peers that were discovered early
+      if (earlyPeers && earlyPeers.length > 0) {
+        console.log(`AudioManager: Connecting to ${earlyPeers.length} pre-discovered peers`);
+        await this.connectToDiscoveredPeers(earlyPeers);
+      } else {
+        this.connectToPeers();
+      }
 
       console.log(`AudioManager initialized for sub-group: ${this.subGroup} (iOS: ${this.isIOS})`);
       return true;
@@ -155,6 +168,35 @@ class AudioManager {
         this.reportStatus('mic_denied');
       }
       return false;
+    }
+  }
+
+  // Discover peers early (before mic access) to reduce connection time
+  async discoverPeersEarly() {
+    try {
+      const response = await fetch(`${this.apiUrl}/webrtc/peers?subGroup=${encodeURIComponent(this.subGroup)}`);
+      if (response.ok) {
+        const data = await response.json();
+        return (data.peers || []).filter(peer => peer.sessionId !== this.sessionId);
+      }
+    } catch (error) {
+      console.log('Early peer discovery failed (non-fatal):', error);
+    }
+    return [];
+  }
+
+  // Connect to pre-discovered peers
+  async connectToDiscoveredPeers(peers) {
+    for (const peer of peers) {
+      if (!this.peerConnections[peer.sessionId]) {
+        if (this.sessionId < peer.sessionId) {
+          console.log(`Initiating connection to pre-discovered peer ${peer.sessionId}`);
+          await this.createPeerConnection(peer.sessionId, true);
+        } else {
+          console.log(`Waiting for connection from pre-discovered peer ${peer.sessionId}`);
+          this.peerConnections[peer.sessionId] = 'waiting';
+        }
+      }
     }
   }
 
