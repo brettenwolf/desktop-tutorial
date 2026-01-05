@@ -1101,6 +1101,9 @@ async def startup_cleanup_task():
     # Create index for page cache
     await db.page_cache.create_index([("cache_key", 1), ("cache_version", 1)])
     
+    # Ensure "General" group always exists
+    await ensure_general_group_exists()
+    
     # Auto-load a PDF on startup if none is loaded
     await ensure_document_loaded()
     
@@ -1108,6 +1111,18 @@ async def startup_cleanup_task():
     signal_cleanup_task = asyncio.create_task(auto_cleanup_old_signals())
     inactive_participant_cleanup_task = asyncio.create_task(auto_cleanup_inactive_participants())
     logger.info("Started auto-cleanup background tasks")
+
+async def ensure_general_group_exists():
+    """Ensure the 'General' subgroup always exists"""
+    existing = await db.subgroups.find_one({"name": "General"})
+    if not existing:
+        subgroup_id = str(uuid.uuid4())
+        await db.subgroups.insert_one({
+            "id": subgroup_id,
+            "name": "General",
+            "createdAt": datetime.utcnow()
+        })
+        logger.info("Created default 'General' subgroup")
 
 async def ensure_document_loaded():
     """Ensure a document is loaded on startup - either today's dated file or a random one"""
