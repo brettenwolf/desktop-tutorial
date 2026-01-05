@@ -60,12 +60,34 @@ class AudioManager {
       this.reportStatus('initializing');
       console.log('AudioManager: Starting initialization, isIOS:', this.isIOS);
       
-      // Check if WebRTC is supported
+      // Polyfill for older browsers
+      if (navigator.mediaDevices === undefined) {
+        navigator.mediaDevices = {};
+      }
+      
+      // Polyfill getUserMedia for older iOS Safari
+      if (navigator.mediaDevices.getUserMedia === undefined) {
+        navigator.mediaDevices.getUserMedia = function(constraints) {
+          const getUserMedia = navigator.webkitGetUserMedia || navigator.mozGetUserMedia || navigator.getUserMedia;
+          
+          if (!getUserMedia) {
+            return Promise.reject(new Error('getUserMedia is not supported in this browser'));
+          }
+          
+          return new Promise((resolve, reject) => {
+            getUserMedia.call(navigator, constraints, resolve, reject);
+          });
+        };
+      }
+      
+      // Final check if WebRTC is supported
       if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
-        console.log('WebRTC not supported in this browser');
+        console.log('WebRTC not supported in this browser after polyfill');
         this.reportStatus('unsupported');
         return false;
       }
+      
+      console.log('AudioManager: WebRTC support confirmed');
 
       // Create AudioContext for iOS compatibility
       try {
