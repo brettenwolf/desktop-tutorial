@@ -976,45 +976,81 @@ async def delete_pdf_from_library(filename: str):
         raise HTTPException(status_code=500, detail=str(e))
 
 
-# Random PDF Management
+# Random PDF Management - Files stored in MongoDB for persistence across deployments
 @api_router.get("/document/library/random")
 async def list_random_library():
+    """List PDFs in the Random folder (stored in MongoDB)"""
     try:
-        random_folder = Path(__file__).parent / "pdfs-github" / "Random"
-        if not random_folder.exists():
-            random_folder.mkdir(parents=True, exist_ok=True)
-            return {"files": [], "count": 0}
-        
+        # Get PDFs from MongoDB
         pdf_files = []
-        for pdf_file in random_folder.glob("*.pdf"):
-            if pdf_file.is_file():
-                stat = pdf_file.stat()
-                pdf_files.append({
-                    "filename": pdf_file.name,
-                    "size": stat.st_size,
-                    "modified": datetime.fromtimestamp(stat.st_mtime).isoformat()
-                })
+        cursor = db.pdf_library.find({"folder": "random"}, {"_id": 0, "data": 0})
+        async for doc in cursor:
+            pdf_files.append({
+                "filename": doc.get("filename"),
+                "size": doc.get("size", 0),
+                "modified": doc.get("modified", doc.get("uploadedAt", ""))
+            })
         
-        pdf_files.sort(key=lambda x: x["filename"])
+        # Also check filesystem for backwards compatibility (pre-existing files)
+        random_folder = Path(__file__).parent / "pdfs-github" / "Random"
+        if random_folder.exists():
+            for pdf_file in random_folder.glob("*.pdf"):
+                if pdf_file.is_file():
+                    # Check if already in MongoDB
+                    existing = await db.pdf_library.find_one({"filename": pdf_file.name, "folder": "random"})
+                    if not existing:
+                        stat = pdf_file.stat()
+                        pdf_files.append({
+                            "filename": pdf_file.name,
+                            "size": stat.st_size,
+                            "modified": datetime.fromtimestamp(stat.st_mtime).isoformat()
+                        })
         
-        return {"files": pdf_files, "count": len(pdf_files)}
+        # Remove duplicates and sort
+        seen = set()
+        unique_files = []
+        for f in pdf_files:
+            if f["filename"] not in seen:
+                seen.add(f["filename"])
+                unique_files.append(f)
+        
+        unique_files.sort(key=lambda x: x["filename"])
+        
+        return {"files": unique_files, "count": len(unique_files)}
     except Exception as e:
         logger.error(f"Error listing Random library: {e}")
         raise HTTPException(status_code=500, detail=str(e))
 
 @api_router.post("/document/library/random/upload")
 async def upload_to_random(file: UploadFile = File(...)):
+    """Upload PDF to Random folder - stored in MongoDB for persistence"""
     try:
         if not file.filename.endswith('.pdf'):
             raise HTTPException(status_code=400, detail="Only PDF files are allowed")
         
+        content = await file.read()
+        encoded_content = base64.b64encode(content).decode('utf-8')
+        
+        # Store in MongoDB
+        await db.pdf_library.update_one(
+            {"filename": file.filename, "folder": "random"},
+            {"$set": {
+                "filename": file.filename,
+                "folder": "random",
+                "data": encoded_content,
+                "size": len(content),
+                "contentType": "application/pdf",
+                "modified": datetime.utcnow().isoformat(),
+                "uploadedAt": datetime.utcnow().isoformat()
+            }},
+            upsert=True
+        )
+        
+        # Also save to filesystem for backwards compatibility
         random_folder = Path(__file__).parent / "pdfs-github" / "Random"
         if not random_folder.exists():
             random_folder.mkdir(parents=True, exist_ok=True)
-        
         file_path = random_folder / file.filename
-        content = await file.read()
-        
         with open(file_path, 'wb') as f:
             f.write(content)
         
@@ -1034,14 +1070,27 @@ async def upload_to_random(file: UploadFile = File(...)):
 
 @api_router.delete("/document/library/random/{filename}")
 async def delete_random_pdf(filename: str):
+    """Delete PDF from Random folder (both MongoDB and filesystem)"""
     try:
+        # Check if file exists in MongoDB
+        existing = await db.pdf_library.find_one({"filename": filename, "folder": "random"})
+        
+        # Also check filesystem
         random_folder = Path(__file__).parent / "pdfs-github" / "Random"
         file_path = random_folder / filename
+        file_exists_on_disk = file_path.exists()
         
-        if not file_path.exists():
+        if not existing and not file_exists_on_disk:
             raise HTTPException(status_code=404, detail=f"File '{filename}' not found in Random folder")
         
-        file_path.unlink()
+        # Delete from MongoDB
+        if existing:
+            await db.pdf_library.delete_one({"filename": filename, "folder": "random"})
+        
+        # Delete from filesystem if exists
+        if file_exists_on_disk:
+            file_path.unlink()
+        
         logger.info(f"Deleted from Random: {filename}")
         
         return {
