@@ -49,6 +49,7 @@ const HomePage = () => {
   const [documentData, setDocumentData] = useState(null);
   const [uploadingDocument, setUploadingDocument] = useState(false);
   const [autoLoadAttempted, setAutoLoadAttempted] = useState(false);
+  const [firstPageReady, setFirstPageReady] = useState(false); // Track when first page is viewable
   
   // Audio state
   const [isMuted, setIsMuted] = useState(true);
@@ -293,6 +294,7 @@ const HomePage = () => {
     setHasStartedReading(false);
     setAutoLoadAttempted(false);
     setStatusMessage(null);
+    setFirstPageReady(false);
     
     localStorage.removeItem('sessionId');
     localStorage.removeItem('userName');
@@ -460,6 +462,7 @@ const HomePage = () => {
       setSelectedSubGroup(null);
       setAutoLoadAttempted(false);
       setStatusMessage(null);
+      setFirstPageReady(false);
       
       localStorage.removeItem('sessionId');
       localStorage.removeItem('userName');
