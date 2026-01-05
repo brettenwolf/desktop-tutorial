@@ -819,43 +819,60 @@ async def cache_page(cache_key: str, cache_version: int, img_data: bytes):
         logger.error(f"Failed to cache page: {e}")
 
 
-# PDF Library Management
+# PDF Library Management - Files stored in MongoDB for persistence across deployments
 @api_router.get("/document/library")
 async def list_pdf_library():
+    """List PDFs in the Upload folder (stored in MongoDB)"""
     try:
-        pdf_folder = Path(__file__).parent / "pdfs-github"
-        if not pdf_folder.exists():
-            pdf_folder.mkdir(parents=True, exist_ok=True)
-            return {"files": []}
-        
+        # Get PDFs from MongoDB
         pdf_files = []
-        for pdf_file in pdf_folder.glob("*.pdf"):
-            if pdf_file.is_file():
-                stat = pdf_file.stat()
-                pdf_files.append({
-                    "filename": pdf_file.name,
-                    "size": stat.st_size,
-                    "modified": datetime.fromtimestamp(stat.st_mtime).isoformat()
-                })
+        cursor = db.pdf_library.find({"folder": "upload"}, {"_id": 0, "data": 0})
+        async for doc in cursor:
+            pdf_files.append({
+                "filename": doc.get("filename"),
+                "size": doc.get("size", 0),
+                "modified": doc.get("modified", doc.get("uploadedAt", ""))
+            })
         
-        pdf_files.sort(key=lambda x: x["filename"])
+        # Also check filesystem for backwards compatibility (pre-existing files)
+        pdf_folder = Path(__file__).parent / "pdfs-github"
+        if pdf_folder.exists():
+            for pdf_file in pdf_folder.glob("*.pdf"):
+                if pdf_file.is_file():
+                    # Check if already in MongoDB
+                    existing = await db.pdf_library.find_one({"filename": pdf_file.name, "folder": "upload"})
+                    if not existing:
+                        stat = pdf_file.stat()
+                        pdf_files.append({
+                            "filename": pdf_file.name,
+                            "size": stat.st_size,
+                            "modified": datetime.fromtimestamp(stat.st_mtime).isoformat()
+                        })
         
-        return {"files": pdf_files, "count": len(pdf_files)}
+        # Remove duplicates and sort
+        seen = set()
+        unique_files = []
+        for f in pdf_files:
+            if f["filename"] not in seen:
+                seen.add(f["filename"])
+                unique_files.append(f)
+        
+        unique_files.sort(key=lambda x: x["filename"])
+        
+        return {"files": unique_files, "count": len(unique_files)}
     except Exception as e:
         logger.error(f"Error listing PDF library: {e}")
         raise HTTPException(status_code=500, detail=str(e))
 
 @api_router.post("/document/library/upload")
 async def upload_pdf_to_library(file: UploadFile = File(...)):
+    """Upload PDF to library - stored in MongoDB for persistence"""
     try:
         if not file.filename.endswith('.pdf'):
             raise HTTPException(status_code=400, detail="Only PDF files are allowed")
         
-        pdf_folder = Path(__file__).parent / "pdfs-github"
-        if not pdf_folder.exists():
-            pdf_folder.mkdir(parents=True, exist_ok=True)
-        
-        file_path = pdf_folder / file.filename
+        content = await file.read()
+        encoded_content = base64.b64encode(content).decode('utf-8')
         
         # Check if this file is currently loaded
         doc = await get_current_document()
@@ -876,8 +893,28 @@ async def upload_pdf_to_library(file: UploadFile = File(...)):
         else:
             cache_version = doc.get("cacheVersion", 0)
         
-        content = await file.read()
+        # Store in MongoDB
+        await db.pdf_library.update_one(
+            {"filename": file.filename, "folder": "upload"},
+            {"$set": {
+                "filename": file.filename,
+                "folder": "upload",
+                "data": encoded_content,
+                "size": len(content),
+                "contentType": "application/pdf",
+                "modified": datetime.utcnow().isoformat(),
+                "uploadedAt": datetime.utcnow().isoformat()
+            }},
+            upsert=True
+        )
+        
+        # Also save to filesystem for backwards compatibility
+        pdf_folder = Path(__file__).parent / "pdfs-github"
+        if not pdf_folder.exists():
+            pdf_folder.mkdir(parents=True, exist_ok=True)
+        file_path = pdf_folder / file.filename
         with open(file_path, 'wb') as f:
+            f.write(content)
             f.write(content)
         
         logger.info(f"Uploaded PDF to library: {file.filename} ({len(content)} bytes)")
