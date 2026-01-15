@@ -15,6 +15,7 @@ import fitz  # PyMuPDF
 from io import BytesIO
 from PIL import Image
 import asyncio
+import httpx  # For fetching TURN credentials
 
 # Setup logging first
 logger = logging.getLogger(__name__)
@@ -27,8 +28,13 @@ load_dotenv(ROOT_DIR / '.env')
 mongo_url = os.getenv('MONGO_URL', 'mongodb://localhost:27017')
 db_name = os.getenv('DB_NAME', 'readqueue_db')
 
+# Metered.ca TURN server configuration
+METERED_API_KEY = os.getenv('METERED_API_KEY')
+METERED_APP_NAME = os.getenv('METERED_APP_NAME', 'readqueue.metered.live')
+
 logger.info(f"Connecting to MongoDB at: {mongo_url.split('@')[-1] if '@' in mongo_url else mongo_url}")
 logger.info(f"Using database: {db_name}")
+logger.info(f"Metered TURN configured: {bool(METERED_API_KEY)}")
 
 try:
     client = AsyncIOMotorClient(mongo_url, serverSelectionTimeoutMS=5000)
