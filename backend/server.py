@@ -486,6 +486,56 @@ async def clear_all_queues():
     }
 
 
+# WebRTC TURN Server Credentials
+@api_router.get("/webrtc/turn-credentials")
+async def get_turn_credentials():
+    """Fetch TURN server credentials from Metered.ca"""
+    if not METERED_API_KEY:
+        logger.warning("Metered API key not configured, returning fallback TURN servers")
+        # Fallback to free servers if Metered not configured
+        return {
+            "iceServers": [
+                {"urls": "stun:stun.l.google.com:19302"},
+                {"urls": "stun:stun1.l.google.com:19302"},
+                {
+                    "urls": [
+                        "turn:openrelay.metered.ca:443",
+                        "turn:openrelay.metered.ca:443?transport=tcp",
+                    ],
+                    "username": "openrelayproject",
+                    "credential": "openrelayproject",
+                }
+            ],
+            "source": "fallback"
+        }
+    
+    try:
+        async with httpx.AsyncClient() as client:
+            response = await client.get(
+                f"https://{METERED_APP_NAME}/api/v1/turn/credentials",
+                params={"apiKey": METERED_API_KEY},
+                timeout=10.0
+            )
+            
+            if response.status_code == 200:
+                ice_servers = response.json()
+                logger.info(f"Fetched TURN credentials from Metered.ca: {len(ice_servers)} servers")
+                return {
+                    "iceServers": ice_servers,
+                    "source": "metered"
+                }
+            else:
+                logger.error(f"Metered API error: {response.status_code} - {response.text}")
+                raise HTTPException(status_code=502, detail="Failed to fetch TURN credentials")
+                
+    except httpx.TimeoutException:
+        logger.error("Timeout fetching TURN credentials from Metered.ca")
+        raise HTTPException(status_code=504, detail="TURN credential fetch timed out")
+    except Exception as e:
+        logger.error(f"Error fetching TURN credentials: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+
 # Document Management Endpoints
 @api_router.get("/config/random-cache")
 async def get_random_cache():
