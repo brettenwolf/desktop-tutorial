@@ -480,30 +480,18 @@ class AudioManager {
         
         // If we have a 'waiting' placeholder or no connection, create one
         if (!pc || pc === 'waiting') {
-          // Use same optimized config as createPeerConnection
+          // Get ICE servers from Metered.ca (or cached/fallback)
+          const iceServers = await this.getIceServers();
+          
           const config = {
-            iceServers: [
-              { urls: 'stun:stun.l.google.com:19302' },
-              { urls: 'stun:stun1.l.google.com:19302' },
-              {
-                urls: [
-                  'turn:openrelay.metered.ca:443',
-                  'turn:openrelay.metered.ca:443?transport=tcp',
-                ],
-                username: 'openrelayproject',
-                credential: 'openrelayproject',
-              },
-              {
-                urls: 'turns:openrelay.metered.ca:443?transport=tcp',
-                username: 'openrelayproject',
-                credential: 'openrelayproject',
-              },
-            ],
+            iceServers: iceServers,
             iceCandidatePoolSize: 5,
             iceTransportPolicy: 'all',
             bundlePolicy: 'max-bundle',
             rtcpMuxPolicy: 'require',
           };
+          
+          console.log(`AudioManager: Creating peer connection for offer from ${from} with ${iceServers.length} ICE servers`);
           
           pc = new RTCPeerConnection(config);
           this.peerConnections[from] = pc;
