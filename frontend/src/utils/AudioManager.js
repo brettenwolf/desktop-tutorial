@@ -367,32 +367,18 @@ class AudioManager {
 
   async createPeerConnection(peerId, isInitiator = false) {
     try {
-      // Optimized ICE configuration for faster connections
+      // Get ICE servers from Metered.ca (or cached/fallback)
+      const iceServers = await this.getIceServers();
+      
       const config = {
-        iceServers: [
-          // Google STUN servers (fastest, most reliable)
-          { urls: 'stun:stun.l.google.com:19302' },
-          { urls: 'stun:stun1.l.google.com:19302' },
-          // Open Relay TURN servers - prioritize TCP for better firewall traversal
-          {
-            urls: [
-              'turn:openrelay.metered.ca:443',
-              'turn:openrelay.metered.ca:443?transport=tcp',
-            ],
-            username: 'openrelayproject',
-            credential: 'openrelayproject',
-          },
-          {
-            urls: 'turns:openrelay.metered.ca:443?transport=tcp',
-            username: 'openrelayproject',
-            credential: 'openrelayproject',
-          },
-        ],
-        iceCandidatePoolSize: 5, // Reduced from 10 for faster gathering
+        iceServers: iceServers,
+        iceCandidatePoolSize: 5,
         iceTransportPolicy: 'all',
-        bundlePolicy: 'max-bundle', // Bundle audio for efficiency
-        rtcpMuxPolicy: 'require', // Require RTCP mux for faster setup
+        bundlePolicy: 'max-bundle',
+        rtcpMuxPolicy: 'require',
       };
+
+      console.log(`AudioManager: Creating peer connection to ${peerId} with ${iceServers.length} ICE servers`);
 
       const pc = new RTCPeerConnection(config);
       this.peerConnections[peerId] = pc;
