@@ -2,6 +2,7 @@
  * AudioManager - WebRTC-based audio streaming for group reading
  * Handles peer-to-peer audio connections within sub-groups
  * iOS Safari/Chrome compatible
+ * Uses Metered.ca TURN servers for reliable connections
  */
 class AudioManager {
   constructor(sessionId, subGroup, apiUrl) {
@@ -21,6 +22,7 @@ class AudioManager {
     this.connectedPeerCount = 0;
     this.connectionAttempts = 0;
     this.lastWarningTime = 0;
+    this.iceServers = null; // Cached ICE servers from Metered.ca
   }
 
   // Set callback for status changes
@@ -55,10 +57,59 @@ class AudioManager {
     }
   }
 
+  // Fetch TURN credentials from backend (uses Metered.ca)
+  async fetchTurnCredentials() {
+    try {
+      console.log('AudioManager: Fetching TURN credentials from backend...');
+      const response = await fetch(`${this.apiUrl}/webrtc/turn-credentials`);
+      
+      if (response.ok) {
+        const data = await response.json();
+        this.iceServers = data.iceServers;
+        console.log(`AudioManager: Got ${this.iceServers.length} ICE servers from ${data.source}`);
+        return this.iceServers;
+      } else {
+        console.error('AudioManager: Failed to fetch TURN credentials:', response.status);
+        return this.getFallbackIceServers();
+      }
+    } catch (error) {
+      console.error('AudioManager: Error fetching TURN credentials:', error);
+      return this.getFallbackIceServers();
+    }
+  }
+
+  // Fallback ICE servers if Metered.ca fetch fails
+  getFallbackIceServers() {
+    console.log('AudioManager: Using fallback ICE servers');
+    return [
+      { urls: 'stun:stun.l.google.com:19302' },
+      { urls: 'stun:stun1.l.google.com:19302' },
+      {
+        urls: [
+          'turn:openrelay.metered.ca:443',
+          'turn:openrelay.metered.ca:443?transport=tcp',
+        ],
+        username: 'openrelayproject',
+        credential: 'openrelayproject',
+      }
+    ];
+  }
+
+  // Get ICE servers (cached or fetch new)
+  async getIceServers() {
+    if (this.iceServers) {
+      return this.iceServers;
+    }
+    return await this.fetchTurnCredentials();
+  }
+
   async initialize(startMuted = true) {
     try {
       this.reportStatus('initializing');
       console.log('AudioManager: Starting initialization, isIOS:', this.isIOS);
+      
+      // Fetch TURN credentials first (in parallel with peer discovery)
+      const turnCredentialsPromise = this.fetchTurnCredentials();
       
       // Start peer discovery early (in parallel with mic access)
       const earlyPeerDiscovery = this.discoverPeersEarly();
