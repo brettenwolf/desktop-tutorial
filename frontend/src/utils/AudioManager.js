@@ -189,7 +189,8 @@ class AudioManager {
       this.isInitialized = true;
       this.reportStatus('ready');
 
-      // Wait for early peer discovery to complete
+      // Wait for TURN credentials and early peer discovery to complete
+      await turnCredentialsPromise;
       const earlyPeers = await earlyPeerDiscovery;
       
       // Start signal polling and connect to discovered peers
