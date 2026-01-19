@@ -167,21 +167,49 @@ const HomePage = () => {
       clearInterval(heartbeatInterval.current);
     }
     
-    // Send heartbeat every 10 seconds
+    // Send heartbeat every 15 seconds (server timeout is 120s, so we have good margin)
     heartbeatInterval.current = setInterval(async () => {
       try {
-        await fetch(`${API}/queue/heartbeat/${sid}`, { method: 'POST' });
+        const response = await fetch(`${API}/queue/heartbeat/${sid}`, { method: 'POST' });
+        if (!response.ok) {
+          // Session may have been removed - try to detect and handle
+          if (response.status === 404) {
+            console.warn('Session not found in queue - may have been removed due to inactivity');
+            // Don't auto-rejoin here, just log it - user will see they're no longer in queue
+          }
+        }
       } catch (error) {
         console.log('Heartbeat failed:', error);
+        // Network error - keep trying, session might still be valid
       }
-    }, 10000);
+    }, 15000);
     
     // Also send immediately
     fetch(`${API}/queue/heartbeat/${sid}`, { method: 'POST' }).catch(() => {});
+    
+    // Handle page visibility changes (when tab is backgrounded/foregrounded)
+    const handleVisibilityChange = () => {
+      if (document.visibilityState === 'visible' && sid) {
+        // Tab became visible - send immediate heartbeat
+        console.log('Tab became visible - sending heartbeat');
+        fetch(`${API}/queue/heartbeat/${sid}`, { method: 'POST' }).catch(() => {});
+      }
+    };
+    
+    // Remove any existing listener before adding
+    document.removeEventListener('visibilitychange', handleVisibilityChange);
+    document.addEventListener('visibilitychange', handleVisibilityChange);
+    
+    // Store the handler so we can remove it later
+    heartbeatInterval.current.visibilityHandler = handleVisibilityChange;
   };
 
   const stopHeartbeat = () => {
     if (heartbeatInterval.current) {
+      // Remove visibility change listener
+      if (heartbeatInterval.current.visibilityHandler) {
+        document.removeEventListener('visibilitychange', heartbeatInterval.current.visibilityHandler);
+      }
       clearInterval(heartbeatInterval.current);
       heartbeatInterval.current = null;
     }
