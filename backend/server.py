@@ -1456,33 +1456,70 @@ async def ensure_document_loaded():
         logger.error(f"Error during startup document load: {e}")
 
 async def auto_cleanup_inactive_participants():
-    """Remove participants who haven't sent a heartbeat in INACTIVE_TIMEOUT_SECONDS"""
+    """
+    Remove ghost participants based on activity AND audio connection status.
+    
+    Logic:
+    - Participants with active audio connection (audioConnected=true) are NEVER removed
+    - Participants without audio who haven't sent heartbeat in 5 minutes are removed
+    - Participants who lost audio connection and no heartbeat in 15 minutes are removed
+    """
     while True:
         try:
-            cutoff_time = datetime.utcnow() - timedelta(seconds=INACTIVE_TIMEOUT_SECONDS)
+            now = datetime.utcnow()
+            standard_cutoff = now - timedelta(seconds=INACTIVE_TIMEOUT_SECONDS)
+            audio_cutoff = now - timedelta(seconds=AUDIO_INACTIVE_TIMEOUT_SECONDS)
             
-            # Find inactive participants
-            inactive = await db.queue.find({"lastActive": {"$lt": cutoff_time}}).to_list(100)
+            # Find participants to potentially remove
+            all_participants = await db.queue.find().to_list(100)
             
-            if inactive:
-                inactive_names = [p.get("name", "Unknown") for p in inactive]
-                inactive_ids = [p.get("sessionId") for p in inactive]
+            to_remove = []
+            for p in all_participants:
+                session_id = p.get("sessionId")
+                name = p.get("name", "Unknown")
+                last_active = p.get("lastActive")
+                audio_connected = p.get("audioConnected", False)
+                last_audio_update = p.get("lastAudioUpdate")
                 
-                # Remove inactive participants
-                result = await db.queue.delete_many({"lastActive": {"$lt": cutoff_time}})
+                # Skip if no lastActive timestamp
+                if not last_active:
+                    continue
                 
-                if result.deleted_count > 0:
-                    logger.info(f"Removed {result.deleted_count} inactive participants: {inactive_names}")
+                # Convert to datetime if it's a string
+                if isinstance(last_active, str):
+                    last_active = datetime.fromisoformat(last_active.replace('Z', '+00:00').replace('+00:00', ''))
+                
+                # NEVER remove participants with active audio connection
+                if audio_connected:
+                    continue
+                
+                # Check if they previously had audio (give them longer grace period)
+                had_audio = last_audio_update is not None
+                
+                if had_audio:
+                    # They had audio at some point - use longer timeout
+                    if last_active < audio_cutoff:
+                        to_remove.append({"sessionId": session_id, "name": name, "reason": "lost_audio_timeout"})
+                else:
+                    # Never established audio - use standard timeout
+                    if last_active < standard_cutoff:
+                        to_remove.append({"sessionId": session_id, "name": name, "reason": "no_audio_timeout"})
+            
+            # Remove inactive participants
+            if to_remove:
+                for p in to_remove:
+                    await db.queue.delete_one({"sessionId": p["sessionId"]})
+                    # Clean up their WebRTC signals
+                    await db.webrtc_signals.delete_many({"fromSessionId": p["sessionId"]})
+                    await db.webrtc_signals.delete_many({"toSessionId": p["sessionId"]})
+                
+                removed_names = [f"{p['name']} ({p['reason']})" for p in to_remove]
+                logger.info(f"Removed {len(to_remove)} inactive participants: {removed_names}")
                     
-                    # Also clean up their WebRTC signals
-                    for session_id in inactive_ids:
-                        if session_id:
-                            await db.webrtc_signals.delete_many({"fromSessionId": session_id})
-                            await db.webrtc_signals.delete_many({"toSessionId": session_id})
         except Exception as e:
             logger.error(f"Error cleaning up inactive participants: {e}")
         
-        await asyncio.sleep(10)  # Check every 10 seconds
+        await asyncio.sleep(30)  # Check every 30 seconds
 
 async def auto_cleanup_old_signals():
     """Clean up WebRTC signals older than 60 seconds"""
