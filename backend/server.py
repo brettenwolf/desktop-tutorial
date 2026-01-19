@@ -1252,7 +1252,7 @@ signal_cleanup_task = None
 inactive_participant_cleanup_task = None
 
 # Configuration for inactive participant cleanup
-INACTIVE_TIMEOUT_SECONDS = 30  # Remove participants inactive for 30 seconds
+INACTIVE_TIMEOUT_SECONDS = 120  # Remove participants inactive for 2 minutes (increased from 30s)
 
 @app.on_event("startup")
 async def startup_cleanup_task():
