@@ -163,13 +163,31 @@ const HomePage = () => {
   // Heartbeat to keep participant active in queue
   const startHeartbeat = (sid) => {
     // Clear any existing heartbeat
-    if (heartbeatInterval.current) {
-      clearInterval(heartbeatInterval.current);
-    }
+    stopHeartbeat();
+    
+    // Handle page visibility changes (when tab is backgrounded/foregrounded)
+    const handleVisibilityChange = () => {
+      if (document.visibilityState === 'visible' && sid) {
+        // Tab became visible - send immediate heartbeat with audio status
+        console.log('Tab became visible - sending heartbeat');
+        const audioConnected = audioManager.current?.connectedPeerCount > 0;
+        fetch(`${API}/queue/heartbeat/${sid}?audioConnected=${audioConnected}`, { method: 'POST' }).catch(() => {});
+      }
+    };
+    
+    // Remove any existing listener before adding
+    document.removeEventListener('visibilitychange', handleVisibilityChange);
+    document.addEventListener('visibilitychange', handleVisibilityChange);
+    
+    // Store the handler reference for cleanup
+    heartbeatInterval.current = {
+      intervalId: null,
+      visibilityHandler: handleVisibilityChange
+    };
     
     // Send heartbeat every 30 seconds (server timeout is 5+ minutes, so plenty of margin)
     // Include audio connection status so server knows not to remove active audio users
-    heartbeatInterval.current = setInterval(async () => {
+    heartbeatInterval.current.intervalId = setInterval(async () => {
       try {
         const audioConnected = audioManager.current?.connectedPeerCount > 0;
         const response = await fetch(`${API}/queue/heartbeat/${sid}?audioConnected=${audioConnected}`, { method: 'POST' });
@@ -186,23 +204,6 @@ const HomePage = () => {
     // Also send immediately
     const audioConnected = audioManager.current?.connectedPeerCount > 0;
     fetch(`${API}/queue/heartbeat/${sid}?audioConnected=${audioConnected}`, { method: 'POST' }).catch(() => {});
-    
-    // Handle page visibility changes (when tab is backgrounded/foregrounded)
-    const handleVisibilityChange = () => {
-      if (document.visibilityState === 'visible' && sid) {
-        // Tab became visible - send immediate heartbeat with audio status
-        console.log('Tab became visible - sending heartbeat');
-        const audioConnected = audioManager.current?.connectedPeerCount > 0;
-        fetch(`${API}/queue/heartbeat/${sid}?audioConnected=${audioConnected}`, { method: 'POST' }).catch(() => {});
-      }
-    };
-    
-    // Remove any existing listener before adding
-    document.removeEventListener('visibilitychange', handleVisibilityChange);
-    document.addEventListener('visibilitychange', handleVisibilityChange);
-    
-    // Store the handler so we can remove it later
-    heartbeatInterval.current.visibilityHandler = handleVisibilityChange;
   };
 
   const stopHeartbeat = () => {
@@ -211,7 +212,10 @@ const HomePage = () => {
       if (heartbeatInterval.current.visibilityHandler) {
         document.removeEventListener('visibilitychange', heartbeatInterval.current.visibilityHandler);
       }
-      clearInterval(heartbeatInterval.current);
+      // Clear interval
+      if (heartbeatInterval.current.intervalId) {
+        clearInterval(heartbeatInterval.current.intervalId);
+      }
       heartbeatInterval.current = null;
     }
   };
