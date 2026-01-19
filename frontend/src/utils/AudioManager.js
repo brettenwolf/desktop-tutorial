@@ -420,12 +420,23 @@ class AudioManager {
           if (this.connectedPeerCount === 0) {
             this.reportStatus('connection_failed', 0);
           }
+          // Attempt to reconnect after failure
+          console.log(`Connection failed to ${peerId}, attempting reconnect in 3s...`);
+          setTimeout(() => this.attemptReconnect(peerId), 3000);
+          
           // Warn user after multiple failures
-          if (this.connectionAttempts >= 2) {
-            this.reportWarning('Audio connection failed. This may be a network issue or the TURN relay service may be temporarily unavailable.', 'connection');
+          if (this.connectionAttempts >= 3) {
+            this.reportWarning('Audio connection unstable. This may be a network issue.', 'connection');
           }
         } else if (pc.connectionState === 'disconnected') {
           this.updateConnectedPeerCount();
+          // Give it a moment to recover before taking action
+          setTimeout(() => {
+            if (pc.connectionState === 'disconnected') {
+              console.log(`Connection to ${peerId} still disconnected, attempting reconnect...`);
+              this.attemptReconnect(peerId);
+            }
+          }, 5000);
           if (this.connectedPeerCount === 0) {
             this.reportStatus('ready', 0);
           }
@@ -438,8 +449,10 @@ class AudioManager {
           console.log(`✗ ICE connection failed for peer ${peerId}`);
           this.reportStatus('ice_failed');
           this.connectionAttempts++;
+          // Attempt ICE restart
+          this.attemptIceRestart(peerId, pc);
           // Warn on ICE failure
-          if (this.connectionAttempts >= 2) {
+          if (this.connectionAttempts >= 3) {
             this.reportWarning('Unable to establish peer connection. Check your network or try rejoining the queue.', 'ice');
           }
         } else if (pc.iceConnectionState === 'disconnected') {
