@@ -35,13 +35,28 @@ class AudioManager {
     this.onWarning = callback;
   }
 
-  // Report status to UI
+  // Report status to UI and server
   reportStatus(status, peerCount = this.connectedPeerCount) {
     this.connectedPeerCount = peerCount;
     if (this.onStatusChange) {
       this.onStatusChange(status, peerCount);
     }
     console.log(`Audio Status: ${status}, Connected Peers: ${peerCount}`);
+    
+    // Report audio connection status to server
+    this.reportAudioStatusToServer(status === 'connected', peerCount);
+  }
+
+  // Report audio connection status to server (for cleanup logic)
+  async reportAudioStatusToServer(connected, peerCount) {
+    try {
+      await fetch(`${this.apiUrl}/queue/audio-status/${this.sessionId}?connected=${connected}&peerCount=${peerCount}`, {
+        method: 'POST'
+      });
+    } catch (error) {
+      // Don't log every failure - this is non-critical
+      console.debug('Audio status report failed:', error.message);
+    }
   }
 
   // Report warning to UI (throttled to avoid spam)
