@@ -1279,7 +1279,8 @@ signal_cleanup_task = None
 inactive_participant_cleanup_task = None
 
 # Configuration for inactive participant cleanup
-INACTIVE_TIMEOUT_SECONDS = 120  # Remove participants inactive for 2 minutes (increased from 30s)
+INACTIVE_TIMEOUT_SECONDS = 300  # 5 minutes for participants WITHOUT audio connection
+AUDIO_INACTIVE_TIMEOUT_SECONDS = 900  # 15 minutes for participants who HAD audio but lost it
 
 @app.on_event("startup")
 async def startup_cleanup_task():
