@@ -683,6 +683,76 @@ class AudioManager {
     this.isInitialized = false;
     console.log('AudioManager cleaned up');
   }
+
+  // Attempt to reconnect to a peer after connection failure
+  async attemptReconnect(peerId) {
+    console.log(`Attempting to reconnect to peer ${peerId}...`);
+    
+    // Clean up existing connection
+    const existingPc = this.peerConnections[peerId];
+    if (existingPc && existingPc !== 'waiting') {
+      try {
+        existingPc.close();
+      } catch (e) {
+        console.log('Error closing existing connection:', e);
+      }
+    }
+    delete this.peerConnections[peerId];
+    
+    // Remove old audio element
+    const existingAudio = this.audioElements[peerId];
+    if (existingAudio) {
+      existingAudio.pause();
+      existingAudio.srcObject = null;
+      existingAudio.remove();
+      delete this.audioElements[peerId];
+    }
+    
+    // Check if peer is still in the queue
+    try {
+      const response = await fetch(`${this.apiUrl}/webrtc/peers?subGroup=${encodeURIComponent(this.subGroup)}`);
+      if (response.ok) {
+        const data = await response.json();
+        const peerExists = (data.peers || []).some(p => p.sessionId === peerId);
+        
+        if (peerExists) {
+          // Peer still exists, reconnect
+          if (this.sessionId < peerId) {
+            console.log(`Reconnecting as initiator to ${peerId}`);
+            await this.createPeerConnection(peerId, true);
+          } else {
+            console.log(`Waiting for ${peerId} to initiate reconnection`);
+            this.peerConnections[peerId] = 'waiting';
+          }
+        } else {
+          console.log(`Peer ${peerId} no longer in queue, not reconnecting`);
+        }
+      }
+    } catch (error) {
+      console.error('Error checking peer status for reconnection:', error);
+    }
+  }
+
+  // Attempt ICE restart for a connection
+  async attemptIceRestart(peerId, pc) {
+    if (!pc || pc === 'waiting') return;
+    
+    try {
+      console.log(`Attempting ICE restart for peer ${peerId}...`);
+      
+      // Create new offer with ICE restart
+      const offer = await pc.createOffer({ iceRestart: true });
+      await pc.setLocalDescription(offer);
+      
+      // Send the new offer
+      await this.sendSignal(peerId, 'offer', { sdp: offer });
+      console.log(`ICE restart offer sent to ${peerId}`);
+    } catch (error) {
+      console.error(`ICE restart failed for ${peerId}:`, error);
+      // If ICE restart fails, try full reconnection
+      setTimeout(() => this.attemptReconnect(peerId), 2000);
+    }
+  }
 }
 
 export default AudioManager;
