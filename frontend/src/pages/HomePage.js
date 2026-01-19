@@ -167,32 +167,33 @@ const HomePage = () => {
       clearInterval(heartbeatInterval.current);
     }
     
-    // Send heartbeat every 15 seconds (server timeout is 120s, so we have good margin)
+    // Send heartbeat every 30 seconds (server timeout is 5+ minutes, so plenty of margin)
+    // Include audio connection status so server knows not to remove active audio users
     heartbeatInterval.current = setInterval(async () => {
       try {
-        const response = await fetch(`${API}/queue/heartbeat/${sid}`, { method: 'POST' });
+        const audioConnected = audioManager.current?.connectedPeerCount > 0;
+        const response = await fetch(`${API}/queue/heartbeat/${sid}?audioConnected=${audioConnected}`, { method: 'POST' });
         if (!response.ok) {
-          // Session may have been removed - try to detect and handle
           if (response.status === 404) {
-            console.warn('Session not found in queue - may have been removed due to inactivity');
-            // Don't auto-rejoin here, just log it - user will see they're no longer in queue
+            console.warn('Session not found in queue - may have been removed');
           }
         }
       } catch (error) {
         console.log('Heartbeat failed:', error);
-        // Network error - keep trying, session might still be valid
       }
-    }, 15000);
+    }, 30000); // Every 30 seconds
     
     // Also send immediately
-    fetch(`${API}/queue/heartbeat/${sid}`, { method: 'POST' }).catch(() => {});
+    const audioConnected = audioManager.current?.connectedPeerCount > 0;
+    fetch(`${API}/queue/heartbeat/${sid}?audioConnected=${audioConnected}`, { method: 'POST' }).catch(() => {});
     
     // Handle page visibility changes (when tab is backgrounded/foregrounded)
     const handleVisibilityChange = () => {
       if (document.visibilityState === 'visible' && sid) {
-        // Tab became visible - send immediate heartbeat
+        // Tab became visible - send immediate heartbeat with audio status
         console.log('Tab became visible - sending heartbeat');
-        fetch(`${API}/queue/heartbeat/${sid}`, { method: 'POST' }).catch(() => {});
+        const audioConnected = audioManager.current?.connectedPeerCount > 0;
+        fetch(`${API}/queue/heartbeat/${sid}?audioConnected=${audioConnected}`, { method: 'POST' }).catch(() => {});
       }
     };
     
