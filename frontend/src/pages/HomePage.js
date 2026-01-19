@@ -808,6 +808,9 @@ const HomePage = () => {
               <div className="p-6 space-y-6">
                 {/* What is ReadQueue */}
                 <section>
+                  <p className="text-yellow-300 font-semibold mb-4 p-3 bg-yellow-500/10 rounded-lg border border-yellow-500/30">
+                    ⚠️ Please use Chrome or Safari to maximize user experience.
+                  </p>
                   <h3 className="text-lg font-semibold text-blue-400 mb-3">What is ReadQueue?</h3>
                   <p className="text-white/80 leading-relaxed">
                     ReadQueue is a group reading queue management application designed to help organize 
