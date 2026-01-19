@@ -1040,7 +1040,7 @@ const HomePage = () => {
                       : 'bg-white/10 text-white/70 hover:bg-white/20'
                   }`}
                 >
-                  Mute
+                  Muted
                 </button>
                 
                 {/* Mic Icon - Shows current state */}
@@ -1061,7 +1061,7 @@ const HomePage = () => {
                       : 'bg-white/10 text-white/70 hover:bg-white/20'
                   }`}
                 >
-                  Unmute
+                  Unmuted
                 </button>
                 
                 {/* Connection Status Indicator */}
