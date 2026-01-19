@@ -420,17 +420,44 @@ async def leave_queue(sessionId: str):
     return {"message": "You have left the queue"}
 
 @api_router.post("/queue/heartbeat/{sessionId}")
-async def queue_heartbeat(sessionId: str):
-    """Lightweight heartbeat endpoint to keep participant active in queue"""
+async def queue_heartbeat(sessionId: str, audioConnected: bool = False):
+    """
+    Lightweight heartbeat endpoint to keep participant active in queue.
+    Also accepts audioConnected status to indicate active WebRTC connection.
+    """
     result = await db.queue.update_one(
         {"sessionId": sessionId},
-        {"$set": {"lastActive": datetime.utcnow()}}
+        {"$set": {
+            "lastActive": datetime.utcnow(),
+            "audioConnected": audioConnected
+        }}
     )
     
     if result.matched_count == 0:
         raise HTTPException(status_code=404, detail="Participant not found in queue")
     
     return {"success": True, "timestamp": datetime.utcnow().isoformat()}
+
+@api_router.post("/queue/audio-status/{sessionId}")
+async def update_audio_status(sessionId: str, connected: bool = False, peerCount: int = 0):
+    """
+    Update participant's audio connection status.
+    Called by AudioManager when connection state changes.
+    """
+    result = await db.queue.update_one(
+        {"sessionId": sessionId},
+        {"$set": {
+            "audioConnected": connected,
+            "audioPeerCount": peerCount,
+            "lastAudioUpdate": datetime.utcnow()
+        }}
+    )
+    
+    if result.matched_count == 0:
+        raise HTTPException(status_code=404, detail="Participant not found in queue")
+    
+    logger.info(f"Audio status updated for {sessionId}: connected={connected}, peers={peerCount}")
+    return {"success": True}
 
 @api_router.delete("/queue/remove/{sessionId}")
 async def remove_participant(sessionId: str):
