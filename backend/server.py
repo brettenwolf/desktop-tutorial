@@ -1039,9 +1039,9 @@ async def delete_pdf_from_library(filename: str):
 # Random PDF Management - Files stored in MongoDB for persistence across deployments
 @api_router.get("/document/library/random")
 async def list_random_library():
-    """List PDFs in the Random folder (stored in MongoDB)"""
+    """List PDFs in the Random folder (stored in MongoDB only - ignores filesystem)"""
     try:
-        # Get PDFs from MongoDB
+        # Get PDFs from MongoDB ONLY (filesystem files from git are ignored)
         pdf_files = []
         cursor = db.pdf_library.find({"folder": "random"}, {"_id": 0, "data": 0})
         async for doc in cursor:
@@ -1051,32 +1051,9 @@ async def list_random_library():
                 "modified": doc.get("modified", doc.get("uploadedAt", ""))
             })
         
-        # Also check filesystem for backwards compatibility (pre-existing files)
-        random_folder = Path(__file__).parent / "pdfs-github" / "Random"
-        if random_folder.exists():
-            for pdf_file in random_folder.glob("*.pdf"):
-                if pdf_file.is_file():
-                    # Check if already in MongoDB
-                    existing = await db.pdf_library.find_one({"filename": pdf_file.name, "folder": "random"})
-                    if not existing:
-                        stat = pdf_file.stat()
-                        pdf_files.append({
-                            "filename": pdf_file.name,
-                            "size": stat.st_size,
-                            "modified": datetime.fromtimestamp(stat.st_mtime).isoformat()
-                        })
+        pdf_files.sort(key=lambda x: x["filename"])
         
-        # Remove duplicates and sort
-        seen = set()
-        unique_files = []
-        for f in pdf_files:
-            if f["filename"] not in seen:
-                seen.add(f["filename"])
-                unique_files.append(f)
-        
-        unique_files.sort(key=lambda x: x["filename"])
-        
-        return {"files": unique_files, "count": len(unique_files)}
+        return {"files": pdf_files, "count": len(pdf_files)}
     except Exception as e:
         logger.error(f"Error listing Random library: {e}")
         raise HTTPException(status_code=500, detail=str(e))
