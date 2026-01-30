@@ -64,8 +64,6 @@ const HomePage = () => {
   
   // Scroll-aware header state (hide on scroll down, show on scroll up)
   const [headerVisible, setHeaderVisible] = useState(true);
-  const lastScrollY = useRef(0);
-  const scrollContainerRef = useRef(null);
   
   // Refs for intervals
   const pollingInterval = useRef(null);
