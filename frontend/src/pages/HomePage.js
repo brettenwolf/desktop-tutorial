@@ -75,20 +75,13 @@ const HomePage = () => {
   const heartbeatInterval = useRef(null);
 
   // Handle scroll to show/hide header
-  const handleScroll = (e) => {
-    const currentScrollY = e.target.scrollTop;
-    const scrollDelta = currentScrollY - lastScrollY.current;
-    
-    // Only trigger if scrolled more than 10px (debounce small movements)
-    if (Math.abs(scrollDelta) > 10) {
-      if (scrollDelta > 0 && currentScrollY > 50) {
-        // Scrolling down - hide header
-        setHeaderVisible(false);
-      } else if (scrollDelta < 0) {
-        // Scrolling up - show header
-        setHeaderVisible(true);
-      }
-      lastScrollY.current = currentScrollY;
+  const handleScroll = (direction, scrollY) => {
+    if (direction === 'down' && scrollY > 50) {
+      // Scrolling down - hide header
+      setHeaderVisible(false);
+    } else if (direction === 'up') {
+      // Scrolling up - show header
+      setHeaderVisible(true);
     }
   };
 
