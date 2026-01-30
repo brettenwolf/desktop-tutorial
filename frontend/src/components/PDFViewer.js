@@ -293,6 +293,7 @@ const PDFViewer = ({ backendUrl, onFirstPageLoaded, onScroll }) => {
       {/* Scrollable PDF Content */}
       <div 
         ref={containerRef}
+        onScroll={handleScroll}
         className="flex-1 overflow-auto bg-gray-900 p-2 sm:p-4"
       >
         <div 
