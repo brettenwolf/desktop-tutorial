@@ -1093,8 +1093,10 @@ const HomePage = () => {
               )}
             </div>
             
-            {/* Right spacer - only on desktop for balance */}
-            <div className="hidden sm:block sm:w-24 flex-shrink-0"></div>
+            {/* Right: Connection Status - right aligned */}
+            <div className={`px-2 sm:px-3 py-1 rounded-lg text-xs sm:text-sm font-medium ${connectionStatus.bg} ${connectionStatus.color}`}>
+              {connectionStatus.text}
+            </div>
           </div>
         </div>
 
