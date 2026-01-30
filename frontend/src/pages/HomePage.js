@@ -1141,8 +1141,8 @@ const HomePage = () => {
             {/* Row 1: Current/Next (stacked) | Your Position (centered) | Total */}
             <div className="flex items-center justify-center gap-3 sm:gap-6">
               {/* Current Reader / Next Up - Stacked on Left */}
-              <div className="text-center px-2 sm:px-3 py-1 sm:py-2 rounded-lg bg-white/5 min-w-[80px] sm:min-w-[100px]">
-                <div className="mb-1">
+              <div className="text-center px-3 sm:px-4 py-2 sm:py-3 rounded-lg bg-white/5 min-w-[90px] sm:min-w-[110px]">
+                <div className="mb-1 pb-1">
                   <p className="text-xs text-white/50">Reader</p>
                   <p className={`text-sm font-medium truncate ${queueStatus?.isPosition1 ? 'text-green-400' : ''}`}>
                     {queueStatus?.position1Name || 'None'}
@@ -1156,18 +1156,18 @@ const HomePage = () => {
                 </div>
               </div>
               
-              {/* Position Info - Centered */}
-              <div className={`text-center px-4 sm:px-6 py-2 sm:py-3 rounded-lg ${queueStatus?.isPosition1 ? 'bg-green-500/20 ring-2 ring-green-500' : queueStatus?.isPosition2 ? 'bg-yellow-500/20 ring-2 ring-yellow-500' : 'bg-white/10'}`}>
+              {/* Position Info - Centered (larger to match left box) */}
+              <div className={`text-center px-5 sm:px-8 py-3 sm:py-4 rounded-lg ${queueStatus?.isPosition1 ? 'bg-green-500/20 ring-2 ring-green-500' : queueStatus?.isPosition2 ? 'bg-yellow-500/20 ring-2 ring-yellow-500' : 'bg-white/10'}`}>
                 <p className="text-xs text-white/70 uppercase">Your Position</p>
-                <p className={`text-4xl sm:text-5xl font-bold ${queueStatus?.isPosition1 ? 'text-green-400' : queueStatus?.isPosition2 ? 'text-yellow-400' : ''}`}>
+                <p className={`text-5xl sm:text-6xl font-bold ${queueStatus?.isPosition1 ? 'text-green-400' : queueStatus?.isPosition2 ? 'text-yellow-400' : ''}`}>
                   {queueStatus?.position || '-'}
                 </p>
               </div>
               
               {/* Total - Right */}
-              <div className="text-center px-2 sm:px-3 py-1 sm:py-2 rounded-lg bg-white/10">
+              <div className="text-center px-3 sm:px-4 py-2 sm:py-3 rounded-lg bg-white/10">
                 <p className="text-xs text-white/70 uppercase">Total</p>
-                <p className="text-xl sm:text-2xl font-bold">{queueStatus?.totalInQueue || 0}</p>
+                <p className="text-2xl sm:text-3xl font-bold">{queueStatus?.totalInQueue || 0}</p>
               </div>
             </div>
 
