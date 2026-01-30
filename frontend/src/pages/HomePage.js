@@ -1141,33 +1141,33 @@ const HomePage = () => {
             {/* Row 1: Current/Next (stacked) | Your Position (centered) | Total */}
             <div className="flex items-center justify-center gap-3 sm:gap-6">
               {/* Current Reader / Next Up - Stacked on Left */}
-              <div className="text-center px-4 sm:px-6 py-3 sm:py-4 rounded-lg bg-white/5 w-[100px] sm:w-[120px]">
-                <div className="mb-2 pb-2">
-                  <p className="text-xs text-white/50">Reader</p>
-                  <p className={`text-sm font-medium truncate ${queueStatus?.isPosition1 ? 'text-green-400' : ''}`}>
+              <div className="text-center px-3 sm:px-4 py-2 rounded-lg bg-white/5 w-[80px] sm:w-[100px] h-[70px] sm:h-[85px] flex flex-col justify-center">
+                <div>
+                  <p className="text-[10px] text-white/50">Reader</p>
+                  <p className={`text-xs font-medium truncate ${queueStatus?.isPosition1 ? 'text-green-400' : ''}`}>
                     {queueStatus?.position1Name || 'None'}
                   </p>
                 </div>
-                <div className="border-t border-white/10 pt-2">
-                  <p className="text-xs text-white/50">Next</p>
-                  <p className={`text-sm font-medium truncate ${queueStatus?.isPosition2 ? 'text-yellow-400' : ''}`}>
+                <div className="border-t border-white/10 mt-1 pt-1">
+                  <p className="text-[10px] text-white/50">Next</p>
+                  <p className={`text-xs font-medium truncate ${queueStatus?.isPosition2 ? 'text-yellow-400' : ''}`}>
                     {queueStatus?.position2Name || 'None'}
                   </p>
                 </div>
               </div>
               
-              {/* Position Info - Centered (same size as left box) */}
-              <div className={`text-center px-4 sm:px-6 py-3 sm:py-4 rounded-lg w-[100px] sm:w-[120px] ${queueStatus?.isPosition1 ? 'bg-green-500/20 ring-2 ring-green-500' : queueStatus?.isPosition2 ? 'bg-yellow-500/20 ring-2 ring-yellow-500' : 'bg-white/10'}`}>
-                <p className="text-xs text-white/70 uppercase">Position</p>
-                <p className={`text-4xl sm:text-5xl font-bold ${queueStatus?.isPosition1 ? 'text-green-400' : queueStatus?.isPosition2 ? 'text-yellow-400' : ''}`}>
+              {/* Position Info - Centered */}
+              <div className={`text-center px-3 sm:px-4 py-2 rounded-lg w-[80px] sm:w-[100px] h-[70px] sm:h-[85px] flex flex-col justify-center ${queueStatus?.isPosition1 ? 'bg-green-500/20 ring-2 ring-green-500' : queueStatus?.isPosition2 ? 'bg-yellow-500/20 ring-2 ring-yellow-500' : 'bg-white/10'}`}>
+                <p className="text-[10px] text-white/70 uppercase">Position</p>
+                <p className={`text-3xl sm:text-4xl font-bold ${queueStatus?.isPosition1 ? 'text-green-400' : queueStatus?.isPosition2 ? 'text-yellow-400' : ''}`}>
                   {queueStatus?.position || '-'}
                 </p>
               </div>
               
               {/* Total - Right */}
-              <div className="text-center px-4 sm:px-6 py-3 sm:py-4 rounded-lg bg-white/10 w-[100px] sm:w-[120px]">
-                <p className="text-xs text-white/70 uppercase">Total</p>
-                <p className="text-4xl sm:text-5xl font-bold">{queueStatus?.totalInQueue || 0}</p>
+              <div className="text-center px-3 sm:px-4 py-2 rounded-lg bg-white/10 w-[80px] sm:w-[100px] h-[70px] sm:h-[85px] flex flex-col justify-center">
+                <p className="text-[10px] text-white/70 uppercase">Total</p>
+                <p className="text-3xl sm:text-4xl font-bold">{queueStatus?.totalInQueue || 0}</p>
               </div>
             </div>
 
