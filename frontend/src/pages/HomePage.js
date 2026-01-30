@@ -1038,74 +1038,82 @@ const HomePage = () => {
   // Render main queue view
   return (
     <div className="h-screen flex flex-col overflow-hidden">
-      {/* Fixed Header - Mobile Responsive */}
-      <div className="flex-shrink-0 bg-white/10 backdrop-blur-md p-2 sm:p-4 border-b border-white/20 z-10">
-        {/* Mobile: 1/3 - 2/3 split | Desktop: fully centered */}
-        <div className="flex items-center sm:justify-between">
-          {/* Left: Logo - 1/3 on mobile, auto on desktop */}
-          <div className="flex items-center gap-2 sm:gap-4 w-1/3 sm:w-auto flex-shrink-0">
-            <div className="text-xl sm:text-2xl">📖</div>
-            <div className="min-w-0">
-              <h1 className="font-bold text-sm sm:text-base truncate">ReadQueue</h1>
-              <p className="text-xs sm:text-sm text-white/70 truncate">
-                <span className="font-bold text-white">Group: </span>
-                {queueStatus?.subGroup || selectedSubGroup}
-              </p>
-            </div>
-          </div>
-          
-          {/* Audio Controls - Right 2/3 on mobile, centered on desktop */}
-          <div className="w-2/3 sm:w-auto sm:absolute sm:left-1/2 sm:transform sm:-translate-x-1/2 flex justify-center">
-            {audioInitialized && (
-              <div className="flex items-center gap-1 sm:gap-2">
-                {/* Mute Button */}
-                <button
-                  onClick={() => { if (!isMuted) toggleMute(); }}
-                  className={`px-3 sm:px-4 py-1.5 sm:py-2 rounded-lg text-xs sm:text-sm font-medium transition-all ${
-                    isMuted 
-                      ? 'bg-red-500 text-white ring-2 ring-red-400' 
-                      : 'bg-white/10 text-white/70 hover:bg-white/20'
-                  }`}
-                >
-                  Muted
-                </button>
-                
-                {/* Mic Icon - Shows current state */}
-                <div className={`p-1.5 sm:p-2 rounded-full ${isMuted ? 'bg-red-500/20' : 'bg-green-500/20'}`}>
-                  {isMuted ? (
-                    <MicOff size={18} className="text-red-400 sm:w-6 sm:h-6" />
-                  ) : (
-                    <Mic size={18} className="text-green-400 sm:w-6 sm:h-6" />
-                  )}
-                </div>
-                
-                {/* Unmute Button */}
-                <button
-                  onClick={() => { if (isMuted) toggleMute(); }}
-                  className={`px-3 sm:px-4 py-1.5 sm:py-2 rounded-lg text-xs sm:text-sm font-medium transition-all ${
-                    !isMuted 
-                      ? 'bg-green-500 text-white ring-2 ring-green-400' 
-                      : 'bg-white/10 text-white/70 hover:bg-white/20'
-                  }`}
-                >
-                  Unmuted
-                </button>
-                
-                {/* Connection Status Indicator */}
-                <div className={`ml-2 px-2 py-1 rounded text-xs font-medium ${connectionStatus.bg} ${connectionStatus.color}`}>
-                  {connectionStatus.text}
-                </div>
+      {/* Collapsible Header - hides on scroll down, shows on scroll up */}
+      <div 
+        className={`flex-shrink-0 transition-all duration-300 ease-in-out ${
+          headerVisible 
+            ? 'max-h-[500px] opacity-100' 
+            : 'max-h-0 opacity-0 overflow-hidden'
+        }`}
+      >
+        {/* Fixed Header - Mobile Responsive */}
+        <div className="bg-white/10 backdrop-blur-md p-2 sm:p-4 border-b border-white/20 z-10">
+          {/* Mobile: 1/3 - 2/3 split | Desktop: fully centered */}
+          <div className="flex items-center sm:justify-between">
+            {/* Left: Logo - 1/3 on mobile, auto on desktop */}
+            <div className="flex items-center gap-2 sm:gap-4 w-1/3 sm:w-auto flex-shrink-0">
+              <div className="text-xl sm:text-2xl">📖</div>
+              <div className="min-w-0">
+                <h1 className="font-bold text-sm sm:text-base truncate">ReadQueue</h1>
+                <p className="text-xs sm:text-sm text-white/70 truncate">
+                  <span className="font-bold text-white">Group: </span>
+                  {queueStatus?.subGroup || selectedSubGroup}
+                </p>
               </div>
-            )}
+            </div>
+            
+            {/* Audio Controls - Right 2/3 on mobile, centered on desktop */}
+            <div className="w-2/3 sm:w-auto sm:absolute sm:left-1/2 sm:transform sm:-translate-x-1/2 flex justify-center">
+              {audioInitialized && (
+                <div className="flex items-center gap-1 sm:gap-2">
+                  {/* Mute Button */}
+                  <button
+                    onClick={() => { if (!isMuted) toggleMute(); }}
+                    className={`px-3 sm:px-4 py-1.5 sm:py-2 rounded-lg text-xs sm:text-sm font-medium transition-all ${
+                      isMuted 
+                        ? 'bg-red-500 text-white ring-2 ring-red-400' 
+                        : 'bg-white/10 text-white/70 hover:bg-white/20'
+                    }`}
+                  >
+                    Muted
+                  </button>
+                  
+                  {/* Mic Icon - Shows current state */}
+                  <div className={`p-1.5 sm:p-2 rounded-full ${isMuted ? 'bg-red-500/20' : 'bg-green-500/20'}`}>
+                    {isMuted ? (
+                      <MicOff size={18} className="text-red-400 sm:w-6 sm:h-6" />
+                    ) : (
+                      <Mic size={18} className="text-green-400 sm:w-6 sm:h-6" />
+                    )}
+                  </div>
+                  
+                  {/* Unmute Button */}
+                  <button
+                    onClick={() => { if (isMuted) toggleMute(); }}
+                    className={`px-3 sm:px-4 py-1.5 sm:py-2 rounded-lg text-xs sm:text-sm font-medium transition-all ${
+                      !isMuted 
+                        ? 'bg-green-500 text-white ring-2 ring-green-400' 
+                        : 'bg-white/10 text-white/70 hover:bg-white/20'
+                    }`}
+                  >
+                    Unmuted
+                  </button>
+                  
+                  {/* Connection Status Indicator */}
+                  <div className={`ml-2 px-2 py-1 rounded text-xs font-medium ${connectionStatus.bg} ${connectionStatus.color}`}>
+                    {connectionStatus.text}
+                  </div>
+                </div>
+              )}
+            </div>
+            
+            {/* Right spacer - only on desktop for balance */}
+            <div className="hidden sm:block sm:w-24 flex-shrink-0"></div>
           </div>
-          
-          {/* Right spacer - only on desktop for balance */}
-          <div className="hidden sm:block sm:w-24 flex-shrink-0"></div>
         </div>
-      </div>
 
-      {/* Fixed Queue Status Panel - Mobile Responsive */}
-      <div className="flex-shrink-0 bg-white/5 border-b border-white/20 p-2 sm:p-4 z-10">
+        {/* Fixed Queue Status Panel - Mobile Responsive */}
+        <div className="bg-white/5 border-b border-white/20 p-2 sm:p-4 z-10">
         <div className="max-w-4xl mx-auto">
           {/* Status Message */}
           {statusMessage && (
