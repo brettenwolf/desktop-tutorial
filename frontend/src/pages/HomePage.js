@@ -1138,14 +1138,22 @@ const HomePage = () => {
           )}
           
           <div className="flex flex-col gap-2 sm:gap-4">
-            {/* Row 1: Connection Status | Your Position (centered) | Total */}
+            {/* Row 1: Current/Next (stacked) | Your Position (centered) | Total */}
             <div className="flex items-center justify-center gap-3 sm:gap-6">
-              {/* Connection Status - Left */}
-              <div className={`text-center px-2 sm:px-3 py-1 sm:py-2 rounded-lg ${connectionStatus.bg}`}>
-                <p className="text-xs text-white/70 uppercase">Status</p>
-                <p className={`text-sm sm:text-base font-bold ${connectionStatus.color}`}>
-                  {connectionStatus.text}
-                </p>
+              {/* Current Reader / Next Up - Stacked on Left */}
+              <div className="text-center px-2 sm:px-3 py-1 sm:py-2 rounded-lg bg-white/5 min-w-[80px] sm:min-w-[100px]">
+                <div className="mb-1">
+                  <p className="text-xs text-white/50">Reader</p>
+                  <p className={`text-sm font-medium truncate ${queueStatus?.isPosition1 ? 'text-green-400' : ''}`}>
+                    {queueStatus?.position1Name || 'None'}
+                  </p>
+                </div>
+                <div className="border-t border-white/10 pt-1">
+                  <p className="text-xs text-white/50">Next</p>
+                  <p className={`text-sm font-medium truncate ${queueStatus?.isPosition2 ? 'text-yellow-400' : ''}`}>
+                    {queueStatus?.position2Name || 'None'}
+                  </p>
+                </div>
               </div>
               
               {/* Position Info - Centered */}
@@ -1162,17 +1170,6 @@ const HomePage = () => {
                 <p className="text-xl sm:text-2xl font-bold">{queueStatus?.totalInQueue || 0}</p>
               </div>
             </div>
-            
-            {/* Row 2: Current Reader / Next Up info - only on desktop */}
-            <div className="hidden sm:flex justify-center gap-8 text-center">
-              <div>
-                <p className="text-xs text-white/70">Current Reader</p>
-                <p className={`font-medium ${queueStatus?.isPosition1 ? 'text-green-400' : ''}`}>
-                  {queueStatus?.position1Name || 'None'}
-                </p>
-              </div>
-              <div>
-                <p className="text-xs text-white/70">Next Up</p>
                 <p className={`font-medium ${queueStatus?.isPosition2 ? 'text-yellow-400' : ''}`}>
                   {queueStatus?.position2Name || 'None'}
                 </p>
