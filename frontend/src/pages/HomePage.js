@@ -1170,13 +1170,8 @@ const HomePage = () => {
                 <p className="text-xl sm:text-2xl font-bold">{queueStatus?.totalInQueue || 0}</p>
               </div>
             </div>
-                <p className={`font-medium ${queueStatus?.isPosition2 ? 'text-yellow-400' : ''}`}>
-                  {queueStatus?.position2Name || 'None'}
-                </p>
-              </div>
-            </div>
 
-            {/* Row 3: Action Buttons - Centered */}
+            {/* Row 2: Action Buttons - Centered */}
             <div className="flex justify-center">
               {/* Action Buttons - Position 1 */}
               {queueStatus?.isPosition1 && (
