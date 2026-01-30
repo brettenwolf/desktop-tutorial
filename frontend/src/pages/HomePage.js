@@ -1279,9 +1279,24 @@ const HomePage = () => {
           </div>
         </div>
       </div>
+      </div>
+      
+      {/* Tap indicator to show header when hidden (mobile only) */}
+      {!headerVisible && (
+        <button 
+          onClick={() => setHeaderVisible(true)}
+          className="sm:hidden flex-shrink-0 bg-white/10 py-1 text-center text-xs text-white/50 border-b border-white/10"
+        >
+          ↑ Tap to show controls ↑
+        </button>
+      )}
 
       {/* Scrollable PDF Viewer Area */}
-      <div className="flex-1 overflow-y-auto">
+      <div 
+        ref={scrollContainerRef}
+        onScroll={handleScroll}
+        className="flex-1 overflow-y-auto"
+      >
         {documentStatus.loaded && documentData ? (
           <PDFViewer 
             backendUrl={BACKEND_URL} 
