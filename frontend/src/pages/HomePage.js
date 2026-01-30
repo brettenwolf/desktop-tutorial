@@ -62,12 +62,35 @@ const HomePage = () => {
   // Info modal state
   const [showInfoModal, setShowInfoModal] = useState(false);
   
+  // Scroll-aware header state (hide on scroll down, show on scroll up)
+  const [headerVisible, setHeaderVisible] = useState(true);
+  const lastScrollY = useRef(0);
+  const scrollContainerRef = useRef(null);
+  
   // Refs for intervals
   const pollingInterval = useRef(null);
   const documentPollingInterval = useRef(null);
   const position2TimerInterval = useRef(null);
   const position2TimeoutRef = useRef(null);
   const heartbeatInterval = useRef(null);
+
+  // Handle scroll to show/hide header
+  const handleScroll = (e) => {
+    const currentScrollY = e.target.scrollTop;
+    const scrollDelta = currentScrollY - lastScrollY.current;
+    
+    // Only trigger if scrolled more than 10px (debounce small movements)
+    if (Math.abs(scrollDelta) > 10) {
+      if (scrollDelta > 0 && currentScrollY > 50) {
+        // Scrolling down - hide header
+        setHeaderVisible(false);
+      } else if (scrollDelta < 0) {
+        // Scrolling up - show header
+        setHeaderVisible(true);
+      }
+      lastScrollY.current = currentScrollY;
+    }
+  };
 
   // Toast helper
   const showToast = (message, type = 'info') => {
