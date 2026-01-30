@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { ZoomIn, ZoomOut, RotateCw, Loader2, Maximize2, Minimize2 } from 'lucide-react';
 
-const PDFViewer = ({ backendUrl, onFirstPageLoaded }) => {
+const PDFViewer = ({ backendUrl, onFirstPageLoaded, onScroll }) => {
   const [pageCount, setPageCount] = useState(0);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
@@ -13,8 +13,24 @@ const PDFViewer = ({ backendUrl, onFirstPageLoaded }) => {
   const containerRef = useRef(null);
   const pageRefs = useRef([]);
   const firstPageLoadedRef = useRef(false);
+  const lastScrollY = useRef(0);
 
   const API = `${backendUrl}/api`;
+  
+  // Handle scroll events for header show/hide
+  const handleScroll = (e) => {
+    if (onScroll) {
+      const currentScrollY = e.target.scrollTop;
+      const scrollDelta = currentScrollY - lastScrollY.current;
+      
+      // Only trigger if scrolled more than 15px (debounce small movements)
+      if (Math.abs(scrollDelta) > 15) {
+        const direction = scrollDelta > 0 ? 'down' : 'up';
+        onScroll(direction, currentScrollY);
+        lastScrollY.current = currentScrollY;
+      }
+    }
+  };
 
   // Fetch page count on mount - with retry logic
   useEffect(() => {
