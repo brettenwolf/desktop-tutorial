@@ -1246,6 +1246,14 @@ const HomePage = () => {
                     <p className="text-xs sm:text-sm text-white/70">Be ready</p>
                   </div>
                   <button
+                    onClick={() => handleAction('skip')}
+                    className="btn-secondary flex items-center gap-1 sm:gap-2 text-sm sm:text-base px-3 sm:px-4 py-1.5 sm:py-2"
+                    data-testid="skip-btn"
+                  >
+                    <SkipForward size={16} className="sm:w-5 sm:h-5" />
+                    Skip
+                  </button>
+                  <button
                     onClick={leaveQueue}
                     className="btn-danger flex items-center gap-1 sm:gap-2 text-sm sm:text-base px-3 sm:px-4 py-1.5 sm:py-2"
                     data-testid="leave-queue-btn"
