@@ -1140,133 +1140,151 @@ const HomePage = () => {
             </div>
           )}
           
-          <div className="flex flex-wrap items-center justify-between gap-2 sm:gap-4">
-            {/* Position Info */}
-            <div className="flex items-center gap-2 sm:gap-6">
-              <div className={`text-center px-2 sm:px-4 py-1 sm:py-2 rounded-lg ${queueStatus?.isPosition1 ? 'bg-green-500/20 ring-2 ring-green-500' : queueStatus?.isPosition2 ? 'bg-yellow-500/20 ring-2 ring-yellow-500' : 'bg-white/10'}`}>
+          <div className="flex flex-col gap-2 sm:gap-4">
+            {/* Row 1: Connection Status | Your Position (centered) | Total */}
+            <div className="flex items-center justify-center gap-3 sm:gap-6">
+              {/* Connection Status - Left */}
+              <div className={`text-center px-2 sm:px-3 py-1 sm:py-2 rounded-lg ${connectionStatus.bg}`}>
+                <p className="text-xs text-white/70 uppercase">Status</p>
+                <p className={`text-sm sm:text-base font-bold ${connectionStatus.color}`}>
+                  {connectionStatus.text}
+                </p>
+              </div>
+              
+              {/* Position Info - Centered */}
+              <div className={`text-center px-4 sm:px-6 py-2 sm:py-3 rounded-lg ${queueStatus?.isPosition1 ? 'bg-green-500/20 ring-2 ring-green-500' : queueStatus?.isPosition2 ? 'bg-yellow-500/20 ring-2 ring-yellow-500' : 'bg-white/10'}`}>
                 <p className="text-xs text-white/70 uppercase">Your Position</p>
-                <p className={`text-3xl font-bold ${queueStatus?.isPosition1 ? 'text-green-400' : queueStatus?.isPosition2 ? 'text-yellow-400' : ''}`}>
+                <p className={`text-4xl sm:text-5xl font-bold ${queueStatus?.isPosition1 ? 'text-green-400' : queueStatus?.isPosition2 ? 'text-yellow-400' : ''}`}>
                   {queueStatus?.position || '-'}
                 </p>
               </div>
               
-              <div className="text-center px-2 sm:px-4 py-1 sm:py-2 rounded-lg bg-white/10">
+              {/* Total - Right */}
+              <div className="text-center px-2 sm:px-3 py-1 sm:py-2 rounded-lg bg-white/10">
                 <p className="text-xs text-white/70 uppercase">Total</p>
-                <p className="text-xl sm:text-3xl font-bold">{queueStatus?.totalInQueue || 0}</p>
+                <p className="text-xl sm:text-2xl font-bold">{queueStatus?.totalInQueue || 0}</p>
               </div>
-              
-              <div className="hidden sm:block">
+            </div>
+            
+            {/* Row 2: Current Reader / Next Up info - only on desktop */}
+            <div className="hidden sm:flex justify-center gap-8 text-center">
+              <div>
                 <p className="text-xs text-white/70">Current Reader</p>
                 <p className={`font-medium ${queueStatus?.isPosition1 ? 'text-green-400' : ''}`}>
                   {queueStatus?.position1Name || 'None'}
                 </p>
-                <p className="text-xs text-white/70 mt-1">Next Up</p>
+              </div>
+              <div>
+                <p className="text-xs text-white/70">Next Up</p>
                 <p className={`font-medium ${queueStatus?.isPosition2 ? 'text-yellow-400' : ''}`}>
                   {queueStatus?.position2Name || 'None'}
                 </p>
               </div>
             </div>
 
-            {/* Action Buttons - Position 1 */}
-            {queueStatus?.isPosition1 && (
-              <div className="flex flex-wrap items-center gap-2 sm:gap-3">
-                {/* Timer for newly advanced Position 1 */}
-                {justBecamePosition1 && isPosition2TimerActive && !hasStartedReading && (
-                  <div className={`text-center px-2 sm:px-4 py-1 sm:py-2 rounded-lg ${position2Timer <= 5 ? 'bg-red-500/20' : 'bg-green-500/20'}`}>
-                    <p className="text-xs text-white/70 uppercase">Act</p>
-                    <p className={`text-lg sm:text-2xl font-bold ${position2Timer <= 5 ? 'text-red-400' : 'text-green-400'}`}>
-                      {position2Timer}s
-                    </p>
-                  </div>
-                )}
-                
-                {!hasStartedReading ? (
-                  <>
-                    <button
-                      onClick={() => handleAction('start')}
-                      className="btn-success flex items-center gap-1 sm:gap-2 text-sm sm:text-base px-2 sm:px-4 py-1.5 sm:py-2"
-                      data-testid="start-reading-btn"
-                    >
-                      <Play size={16} className="sm:w-5 sm:h-5" />
-                      <span className="hidden sm:inline">Start Reading</span>
-                      <span className="sm:hidden">Start</span>
-                    </button>
-                    <button
-                      onClick={() => handleAction('skip')}
-                      className="btn-secondary flex items-center gap-1 sm:gap-2 text-sm sm:text-base px-2 sm:px-4 py-1.5 sm:py-2"
-                      data-testid="skip-btn"
-                    >
-                      <SkipForward size={16} className="sm:w-5 sm:h-5" />
-                      Skip
-                    </button>
-                    <button
-                      onClick={leaveQueue}
-                      className="btn-danger flex items-center gap-1 sm:gap-2 text-sm sm:text-base px-2 sm:px-4 py-1.5 sm:py-2"
-                      data-testid="leave-queue-btn"
-                    >
-                      <LogOut size={14} className="sm:w-[18px] sm:h-[18px]" />
-                      Leave
-                    </button>
-                  </>
-                ) : (
-                  <>
-                    <button
-                      onClick={() => handleAction('finish')}
-                      className="btn-primary flex items-center gap-1 sm:gap-2 text-sm sm:text-base px-2 sm:px-4 py-1.5 sm:py-2"
-                      data-testid="finish-btn"
-                    >
-                      <Check size={16} className="sm:w-5 sm:h-5" />
-                      <span className="hidden sm:inline">Finish Reading</span>
-                      <span className="sm:hidden">Finish</span>
-                    </button>
-                    <button
-                      onClick={leaveQueue}
-                      className="btn-danger flex items-center gap-1 sm:gap-2 text-sm sm:text-base px-2 sm:px-4 py-1.5 sm:py-2"
-                      data-testid="leave-queue-btn"
-                    >
-                      <LogOut size={14} className="sm:w-[18px] sm:h-[18px]" />
-                      Leave
-                    </button>
-                  </>
-                )}
-              </div>
-            )}
-
-            {/* Position 2 Info (no timer - timer only shows when advancing to Position 1) */}
-            {queueStatus?.isPosition2 && (
-              <div className="flex items-center gap-2 sm:gap-4">
-                <div className="text-right">
-                  <p className="text-yellow-400 font-semibold text-sm sm:text-base">You&apos;re next!</p>
-                  <p className="text-xs sm:text-sm text-white/70">Be ready</p>
+            {/* Row 3: Action Buttons - Centered */}
+            <div className="flex justify-center">
+              {/* Action Buttons - Position 1 */}
+              {queueStatus?.isPosition1 && (
+                <div className="flex flex-wrap items-center justify-center gap-2 sm:gap-3">
+                  {/* Timer for newly advanced Position 1 */}
+                  {justBecamePosition1 && isPosition2TimerActive && !hasStartedReading && (
+                    <div className={`text-center px-2 sm:px-4 py-1 sm:py-2 rounded-lg ${position2Timer <= 5 ? 'bg-red-500/20' : 'bg-green-500/20'}`}>
+                      <p className="text-xs text-white/70 uppercase">Act</p>
+                      <p className={`text-lg sm:text-2xl font-bold ${position2Timer <= 5 ? 'text-red-400' : 'text-green-400'}`}>
+                        {position2Timer}s
+                      </p>
+                    </div>
+                  )}
+                  
+                  {!hasStartedReading ? (
+                    <>
+                      <button
+                        onClick={() => handleAction('start')}
+                        className="btn-success flex items-center gap-1 sm:gap-2 text-sm sm:text-base px-3 sm:px-4 py-1.5 sm:py-2"
+                        data-testid="start-reading-btn"
+                      >
+                        <Play size={16} className="sm:w-5 sm:h-5" />
+                        <span className="hidden sm:inline">Start Reading</span>
+                        <span className="sm:hidden">Start</span>
+                      </button>
+                      <button
+                        onClick={() => handleAction('skip')}
+                        className="btn-secondary flex items-center gap-1 sm:gap-2 text-sm sm:text-base px-3 sm:px-4 py-1.5 sm:py-2"
+                        data-testid="skip-btn"
+                      >
+                        <SkipForward size={16} className="sm:w-5 sm:h-5" />
+                        Skip
+                      </button>
+                      <button
+                        onClick={leaveQueue}
+                        className="btn-danger flex items-center gap-1 sm:gap-2 text-sm sm:text-base px-3 sm:px-4 py-1.5 sm:py-2"
+                        data-testid="leave-queue-btn"
+                      >
+                        <LogOut size={14} className="sm:w-[18px] sm:h-[18px]" />
+                        Leave
+                      </button>
+                    </>
+                  ) : (
+                    <>
+                      <button
+                        onClick={() => handleAction('finish')}
+                        className="btn-primary flex items-center gap-1 sm:gap-2 text-sm sm:text-base px-3 sm:px-4 py-1.5 sm:py-2"
+                        data-testid="finish-btn"
+                      >
+                        <Check size={16} className="sm:w-5 sm:h-5" />
+                        <span className="hidden sm:inline">Finish Reading</span>
+                        <span className="sm:hidden">Finish</span>
+                      </button>
+                      <button
+                        onClick={leaveQueue}
+                        className="btn-danger flex items-center gap-1 sm:gap-2 text-sm sm:text-base px-3 sm:px-4 py-1.5 sm:py-2"
+                        data-testid="leave-queue-btn"
+                      >
+                        <LogOut size={14} className="sm:w-[18px] sm:h-[18px]" />
+                        Leave
+                      </button>
+                    </>
+                  )}
                 </div>
-                <button
-                  onClick={leaveQueue}
-                  className="btn-danger flex items-center gap-1 sm:gap-2 text-sm sm:text-base px-2 sm:px-4 py-1.5 sm:py-2"
-                  data-testid="leave-queue-btn"
-                >
-                  <LogOut size={14} className="sm:w-[18px] sm:h-[18px]" />
-                  Leave
-                </button>
-              </div>
-            )}
+              )}
 
-            {/* Other positions - show Leave Queue button */}
-            {!queueStatus?.isPosition1 && !queueStatus?.isPosition2 && (
-              <div className="flex items-center gap-2 sm:gap-4">
-                <p className="text-xs sm:text-sm text-white/70">
-                  <span className="hidden sm:inline">Your name: </span>
-                  <span className="text-white font-medium">{name}</span>
-                </p>
-                <button
-                  onClick={leaveQueue}
-                  className="btn-danger flex items-center gap-1 sm:gap-2 text-sm sm:text-base px-2 sm:px-4 py-1.5 sm:py-2"
-                  data-testid="leave-queue-btn"
-                >
-                  <LogOut size={14} className="sm:w-[18px] sm:h-[18px]" />
-                  Leave
-                </button>
-              </div>
-            )}
+              {/* Position 2 Info */}
+              {queueStatus?.isPosition2 && (
+                <div className="flex items-center justify-center gap-2 sm:gap-4">
+                  <div className="text-center">
+                    <p className="text-yellow-400 font-semibold text-sm sm:text-base">You&apos;re next!</p>
+                    <p className="text-xs sm:text-sm text-white/70">Be ready</p>
+                  </div>
+                  <button
+                    onClick={leaveQueue}
+                    className="btn-danger flex items-center gap-1 sm:gap-2 text-sm sm:text-base px-3 sm:px-4 py-1.5 sm:py-2"
+                    data-testid="leave-queue-btn"
+                  >
+                    <LogOut size={14} className="sm:w-[18px] sm:h-[18px]" />
+                    Leave
+                  </button>
+                </div>
+              )}
+
+              {/* Other positions - show Leave Queue button */}
+              {!queueStatus?.isPosition1 && !queueStatus?.isPosition2 && (
+                <div className="flex items-center justify-center gap-2 sm:gap-4">
+                  <p className="text-xs sm:text-sm text-white/70">
+                    <span className="hidden sm:inline">Your name: </span>
+                    <span className="text-white font-medium">{name}</span>
+                  </p>
+                  <button
+                    onClick={leaveQueue}
+                    className="btn-danger flex items-center gap-1 sm:gap-2 text-sm sm:text-base px-3 sm:px-4 py-1.5 sm:py-2"
+                    data-testid="leave-queue-btn"
+                  >
+                    <LogOut size={14} className="sm:w-[18px] sm:h-[18px]" />
+                    Leave
+                  </button>
+                </div>
+              )}
+            </div>
           </div>
         </div>
       </div>
