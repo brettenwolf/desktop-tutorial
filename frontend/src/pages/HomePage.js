@@ -71,9 +71,13 @@ const HomePage = () => {
   const position2TimerInterval = useRef(null);
   const position2TimeoutRef = useRef(null);
   const heartbeatInterval = useRef(null);
+  const lastQueueState = useRef(null);
 
-  // Handle scroll to show/hide header
+  // Handle scroll to show/hide header (mobile only)
   const handleScroll = (direction, scrollY) => {
+    // Only apply scroll hide/show on mobile (width < 640px)
+    if (window.innerWidth >= 640) return;
+    
     if (direction === 'down' && scrollY > 50) {
       // Scrolling down - hide header
       setHeaderVisible(false);
@@ -81,6 +85,28 @@ const HomePage = () => {
       // Scrolling up - show header
       setHeaderVisible(true);
     }
+  };
+
+  // Show header when queue state changes (someone clicked a button)
+  const showHeaderOnQueueChange = (newQueueStatus) => {
+    if (!lastQueueState.current) {
+      lastQueueState.current = newQueueStatus;
+      return;
+    }
+    
+    // Check if anything meaningful changed
+    const oldState = lastQueueState.current;
+    const changed = 
+      oldState.position !== newQueueStatus?.position ||
+      oldState.totalInQueue !== newQueueStatus?.totalInQueue ||
+      oldState.position1Name !== newQueueStatus?.position1Name ||
+      oldState.position2Name !== newQueueStatus?.position2Name;
+    
+    if (changed) {
+      setHeaderVisible(true); // Show header when queue changes
+    }
+    
+    lastQueueState.current = newQueueStatus;
   };
 
   // Toast helper
