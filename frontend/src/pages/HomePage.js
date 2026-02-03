@@ -337,6 +337,7 @@ const HomePage = () => {
 
       const data = await response.json();
       setQueueStatus(data);
+      showHeaderOnQueueChange(data);
       return data;
     } catch (error) {
       console.error('Error fetching queue status:', error);
