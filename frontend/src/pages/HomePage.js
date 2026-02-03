@@ -450,6 +450,9 @@ const HomePage = () => {
   const handleAction = async (action) => {
     if (!sessionId) return;
 
+    // Show header when action is taken
+    setHeaderVisible(true);
+    
     // Clear Position 2 timer when taking action
     clearPosition2Timer();
     setJustBecamePosition1(false); // Clear the "just became" state when action is taken
